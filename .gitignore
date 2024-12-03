@@ -1,0 +1,18 @@
+# Ignore compiled files
+*.out
+*.o
+*.exe
+
+# Ignore backup files
+*~
+
+# Ignore logs
+*.log
+
+# Ignore IDE/editor configs
+.vscode/
+.idea/
+*.swp
+
+# Ignore temporary files
+temp/
