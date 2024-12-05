@@ -1,5 +1,6 @@
 # BuyByThreads
-The very first proposed schema is like this:
+### project schema
+
 #### Main Menu
 
 - A Tkinter form with a text field for entering the username and a button to submit.
@@ -25,3 +26,15 @@ The very first proposed schema is like this:
 #### Result Display
 
 - Tkinter reads the results (file or output) and updates the GUI with the prices and parameters.
+---
+
+### Key Design Principles
+
+#### Frontend (Tkinter):
+- Use one main menu page to register or select users.
+- Each user can open a new "session" (a new Tkinter page).
+- Each session can interact with the backend independently.
+
+#### Backend (C):
+- Spawn a new process in the C backend for each user session.
+- Keep user data isolated by associating unique input/output files or process identifiers for each user.
