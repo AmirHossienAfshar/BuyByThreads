@@ -38,3 +38,40 @@
 #### Backend (C):
 - Spawn a new process in the C backend for each user session.
 - Keep user data isolated by associating unique input/output files or process identifiers for each user.
+
+---
+
+
+### Shopping List Manager - User Input Guide
+
+here is the explanation of how user input is processed and stored in a text file, using Tkinter-based python file.
+
+The Shopping List Manager collects a username and a list of shopping items through a graphical user interface (GUI) built with Tkinter. after submission, the data is stored in a text file shopping_data.txt in a structured format.
+
+#### How User Input Works
+
+Username Field: A single-line entry for the user's name.
+Shopping List Field: A multi-line text box for entering shopping items, with one item per line.
+
+#### Data Submission Process
+
+When the user clicks the "Save" button:
+
+- Data Collection:
+    The username is collected from the entry field.
+    The shopping list is collected from the text box, split by lines.
+
+- Data Formatting:
+    Extra spaces are removed from each shopping item.
+    Items are joined into a comma-separated string:
+
+```python
+apple,banana,cellphone
+```
+
+The username and the shopping list are joined with a colon `:`
+
+```pthon
+amir:apple,banana,cellphone
+```
+
