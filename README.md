@@ -59,19 +59,14 @@ When the user clicks the "Save" button:
 
 - Data Collection:
     The username is collected from the entry field.
-    The shopping list is collected from the text box, split by lines.
-
-- Data Formatting:
-    Extra spaces are removed from each shopping item.
-    Items are joined into a comma-separated string:
-
-```python
-apple,banana,cellphone
-```
+    The shopping list is collected from the dynammicaly-handled text boxes (there is a btn to add item, which allocates a new input), and the same for count.
 
 The username and the shopping list are joined with a colon `:`
 
+the output format is this:
 ```pthon
-amir:apple,banana,cellphone
+username:good1,count1,good2,count2,...
 ```
 
+subdirectories of each stor:
+Apparel, Beauty, Digital, Food, Home, Market, Sports, Toys
