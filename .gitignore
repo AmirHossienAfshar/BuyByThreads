@@ -17,3 +17,6 @@
 # Ignore temporary files
 temp/
 Dataset/
+
+fileMonitor
+main
