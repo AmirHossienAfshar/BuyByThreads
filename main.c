@@ -134,7 +134,7 @@ entitymum =  string_to_double(entity);
 
 
      if(res.foundItem==1){
-       double sc= scorenum*100.01 / pricenum;
+       double sc= scorenum / pricenum;
        res.score= sc;
        
       
@@ -1096,7 +1096,8 @@ price[2]=string_to_double(buffer);
         score[2]=-1;
     }
 
-int max,maxId;
+double max;
+int maxId;
 max=score[0]; maxId=0;
 for(int i=1;i<3;i++){
   if(score[i]>max)  {
@@ -1108,7 +1109,6 @@ int store= maxId+1;
 
 if(score[maxId]==-1)printf("Not Found");else
 printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", score[maxId],scoreitem[maxId],price[maxId],store);
-
 
 return 0;
 }
