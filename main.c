@@ -1,4 +1,4 @@
-
+#include <poll.h>
 #include <stdio.h>
 #include <unistd.h> 
 #include <sys/types.h> 
@@ -7,15 +7,21 @@
 #include <ctype.h>
 #include <string.h>
 
+
+
+int pipefds[9][2];
+
 struct ThreadArgs  {
     int input1;   
     char category[100];
     char itemName[50];
     int num;
+    int store;
     } ;
 
    struct ThreadReturn  {
     int foundItem;   
+    
     double score;
    } ;
 
@@ -130,6 +136,7 @@ entitymum =  string_to_double(entity);
      if(res.foundItem==1){
        double sc= scorenum*100.01 / pricenum;
        res.score= sc;
+       
       
      }
     
@@ -137,9 +144,37 @@ entitymum =  string_to_double(entity);
        /////////////////////////////////////////////////////////////
         // send to front
 if(res.foundItem==1){
+    if(data->store==0){
+        char buff[50];
+     
+    
+       sprintf(buff, "%e", res.score); 
+       write(pipefds[0][1], buff, 8); 
+       write(pipefds[1][1], score, 8); 
+       write(pipefds[2][1], price, 8); 
+    }
+     if(data->store==1){
+        char buff[50];
+
+    
+       sprintf(buff, "%e", res.score); 
+       write(pipefds[3][1], buff, 8); 
+       write(pipefds[4][1], score, 8); 
+       write(pipefds[5][1], price, 8); 
+    }
+    if(data->store==2){
+        char buff[50];
+
+    
+       sprintf(buff, "%e", res.score); 
+       write(pipefds[6][1], buff, 8); 
+       write(pipefds[7][1], score, 8); 
+       write(pipefds[8][1], price, 8); 
+    }
     
     printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
     printf(" %d  \n ",num);
+    
     
     
 }
@@ -168,14 +203,19 @@ int main(){
 
 
     pid_t pid1, pid2, pid3;
-    char *item= "Bookshelf";
-    int number=31;
+    char *item= "Jeans";
+    int number=5;
     
-    
- 
+    for(int i=0;i<9;i++)
+    if (pipe(pipefds[i]) == -1) {
+    perror("Pipe creation failed");
+    exit(EXIT_FAILURE);
+}
+
+   char buffer[100];
     pid1 = fork();
     if (pid1 == 0) {
-        
+       int s=0;
        pid_t p1, p2, p3,p4,p5,p6,p7,p8;
        p1= fork();
        if(p1==0){                
@@ -192,6 +232,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=160+i+1;
+        args[i].store=0;
     }
     
 
@@ -227,6 +268,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=503+i+1;
+        args[i].store=0;
     }
     
 
@@ -260,6 +302,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=i+1;
+        args[i].store=0;
     }
     
 
@@ -292,6 +335,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=239+i+1;
+        args[i].store=0;
     }
     
 
@@ -323,6 +367,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=78+i+1;
+        args[i].store=0;
     }
     
 
@@ -354,6 +399,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=331+i+1;
+        args[i].store=0;
     }
     
 
@@ -384,6 +430,7 @@ strcpy(args[i].itemName, item);
 strcpy(args[i].itemName, item);
 
         args[i].num=number;
+        args[i].store=0;
         args[i].input1=575+i+1;
     }
     
@@ -416,6 +463,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=424+i+1;
+        args[i].store=0;
     }
     
 
@@ -435,6 +483,8 @@ strcpy(args[i].itemName, item);
                return 0;}
             
 printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
+
+
         return 0; 
     }
 
@@ -495,6 +545,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=503+i+1;
+        args[i].store=1;
     }
     
 
@@ -528,6 +579,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=i+1;
+        args[i].store=1;
     }
     
 
@@ -560,6 +612,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=239+i+1;
+        args[i].store=1;
     }
     
 
@@ -591,6 +644,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=78+i+1;
+        args[i].store=1;
     }
     
 
@@ -622,6 +676,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=331+i+1;
+        args[i].store=1;
     }
     
 
@@ -653,6 +708,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=575+i+1;
+        args[i].store=1;
     }
     
 
@@ -684,6 +740,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=424+i+1;
+        args[i].store=1;
     }
     
 
@@ -702,8 +759,7 @@ strcpy(args[i].itemName, item);
          ///////////////////////////////////////////////////////
                return 0;}
             
-printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
-        return 0; 
+
 
         printf("I am the second child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
         return 0; 
@@ -728,6 +784,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=160+i+1;
+        args[i].store=2;
     }
     
 
@@ -763,6 +820,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=503+i+1;
+        args[i].store=2;
     }
     
 
@@ -796,6 +854,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=i+1;
+        args[i].store=2;
     }
     
 
@@ -828,6 +887,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=239+i+1;
+        args[i].store=2;
     }
     
 
@@ -859,6 +919,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=78+i+1;
+        args[i].store=2;
     }
     
 
@@ -890,6 +951,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=331+i+1;
+        args[i].store=2;
     }
     
 
@@ -921,6 +983,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=575+i+1;
+        args[i].store=2;
     }
     
 
@@ -949,9 +1012,10 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Toys/");
 strcpy(args[i].itemName, item);
-
+        
         args[i].num=number;
         args[i].input1=424+i+1;
+        args[i].store=2;
     }
     
 
@@ -970,8 +1034,6 @@ strcpy(args[i].itemName, item);
          ///////////////////////////////////////////////////////
                return 0;}
             
-printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
-        return 0; 
 
 
 
@@ -981,6 +1043,72 @@ printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid()
         printf("I am the third child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
        
 return 0;}
+double price[3];
+double score[3];
+double scoreitem[3];
+int notFound[3];
+  struct pollfd pfds[3];
+    pfds[0].fd = pipefds[2][0];
+    pfds[0].events = POLLIN; 
+    pfds[1].fd = pipefds[5][0];
+    pfds[1].events = POLLIN; 
+    pfds[2].fd = pipefds[8][0];
+    pfds[2].events = POLLIN; 
+
+ struct pollfd pfd= pfds[0];
+int pollResult = poll(&pfd, 1, 1000); 
+    if (pollResult > 0 ){
+read(pipefds[0][0], buffer, sizeof(buffer));  
+score[0]=string_to_double(buffer);
+read(pipefds[1][0], buffer, sizeof(buffer));  
+scoreitem[0]=string_to_double(buffer);
+read(pipefds[2][0], buffer, sizeof(buffer));  
+price[0]=string_to_double(buffer);
+
+    }else{
+        score[0]=-1;
+    }
+
+
+pfd= pfds[1];
+ pollResult = poll(&pfd, 1, 1000); 
+    if (pollResult > 0 ){
+read(pipefds[3][0], buffer, sizeof(buffer));  
+score[1]=string_to_double(buffer);
+read(pipefds[4][0], buffer, sizeof(buffer));  
+scoreitem[1]=string_to_double(buffer);
+read(pipefds[5][0], buffer, sizeof(buffer));  
+price[1]=string_to_double(buffer);
+}else{
+        score[1]=-1;
+    }
+
+pfd= pfds[2];
+ pollResult = poll(&pfd, 1, 1000); 
+    if (pollResult > 0 ){
+read(pipefds[6][0], buffer, sizeof(buffer));  
+score[2]=string_to_double(buffer);
+read(pipefds[7][0], buffer, sizeof(buffer));  
+scoreitem[2]=string_to_double(buffer);
+read(pipefds[8][0], buffer, sizeof(buffer));  
+price[2]=string_to_double(buffer);
+}else{
+        score[2]=-1;
+    }
+
+int max,maxId;
+max=score[0]; maxId=0;
+for(int i=1;i<3;i++){
+  if(score[i]>max)  {
+    max= score[i];
+    maxId=i;
+  }
+}
+int store= maxId+1;
+
+if(score[maxId]==-1)printf("Not Found");else
+printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", score[maxId],scoreitem[maxId],price[maxId],store);
+
 
 return 0;
 }
