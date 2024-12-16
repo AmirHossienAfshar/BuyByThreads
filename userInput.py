@@ -109,17 +109,16 @@ class ShoppingApp:
             item = item_entry.get().strip()
             count = count_entry.get().strip()
 
-            # If both are empty, we ignore the row entirely
+            # If both are empty, ignore this row
             if not item and not count:
                 continue
 
-            # If one of them is empty, show an error
+            # If one is empty, it's invalid
             if not item or not count:
                 messagebox.showwarning("Input Error", "Please fill out all item and count fields or remove empty rows before saving.")
                 self.label_status.config(text="Submission failed. Try again.", fg="red")
                 return
 
-            # At this point, we know count is numeric due to validation
             items.append((item, count))
 
         if not items:
@@ -127,12 +126,33 @@ class ShoppingApp:
             self.label_status.config(text="Submission failed. Try again.", fg="red")
             return
 
-        # Format data: username:good1,count1,good2,count2,...
-        formatted_list = ",".join([f"{item},{count}" for item, count in items])
+        # Check if user already exists (to set is_repeated)
+        is_repeated = 0
+        if os.path.exists(file_path):
+            with open(file_path, "r") as f:
+                for line in f:
+                    # Each line now will be comma-separated.
+                    # The first element is username in the new format.
+                    line = line.strip()
+                    if not line:
+                        continue
+                    parts = line.split(",")
+                    # parts[0] = username, parts[1] = is_repeated, then items...
+                    if parts[0].strip() == username:
+                        is_repeated = 1
+                        break
+
+        # Format data: username,is_repeated,good1,count1,good2,count2,...
+        item_pairs = []
+        for (item, count) in items:
+            item_pairs.append(item)
+            item_pairs.append(count)
+
+        final_line = ",".join([username, str(is_repeated)] + item_pairs)
 
         # Write to file
         with open(file_path, "a") as file:
-            file.write(f"{username}:{formatted_list}\n")
+            file.write(f"{final_line}\n")
 
         # Clear fields after submission
         self.entry_user.delete(0, tk.END)

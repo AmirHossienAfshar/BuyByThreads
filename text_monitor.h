@@ -23,29 +23,19 @@ void handle_signal(int signal) {
 }
 
 char **parse_line(const char *line, int *count) {
-    static char *components[256];  // To store parsed components
-    char *line_copy = strdup(line);  // Create a mutable copy
+    static char *components[256]; // To store parsed components
+    char *line_copy = strdup(line);
     *count = 0;
 
-    // Split into username and shopping list
-    char *username = strtok(line_copy, ":");
-    char *shopping_list = strtok(NULL, ":");
-
-    if (username && shopping_list) {
-        components[(*count)++] = strdup(username);  // Add username
-
-        // Split shopping list by commas
-        char *item = strtok(shopping_list, ",");
-        while (item != NULL) {
-            components[(*count)++] = strdup(item);
-            item = strtok(NULL, ",");
-        }
+    char *token = strtok(line_copy, ",");
+    while (token != NULL) {
+        components[(*count)++] = strdup(token);
+        token = strtok(NULL, ",");
     }
 
-    free(line_copy);  // Free allocated memory
-    return components;  // Return parsed components
+    free(line_copy);
+    return components;  // components[0] = username, components[1] = is_repeated, ...
 }
-
 
 // Function to get the last line from the file
 char *get_last_line() {
