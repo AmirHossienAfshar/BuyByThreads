@@ -7,6 +7,7 @@
 #include <signal.h>
 #include "text_monitor.h"
 
+
 void new_user(const char *line) {
     printf("New Line Detected: %s\n", line);
 
@@ -79,16 +80,29 @@ int main() {
         return 1;
     }
 
-    // Run other tasks in the main thread
-    run_other_functionality();
+    // Fork to launch the Python Tkinter GUI
+    pid_t pid = fork();
+    if (pid == -1) {
+        perror("Failed to fork");
+        return 1;
+    } else if (pid == 0) {
+        // Child process: run the Python script
+        // Replace "python3" with the actual path to your python interpreter if needed
+        execlp("python3", "python3", PYTHON_SCRIPT, (char *)NULL);
+        // If execlp fails:
+        perror("Failed to exec python script");
+        exit(1);
+    } else {
+        // Parent process: run other functionality
+        run_other_functionality();
 
-    // Wait for the file monitoring thread to finish
-    pthread_join(monitor_thread, NULL);
-
-
+        // Wait for the file monitoring thread to finish
+        pthread_join(monitor_thread, NULL);
+    }
 
     signal(SIGINT, handle_signal);   // Ctrl+C
     signal(SIGTERM, handle_signal);  // Termination
+
 
     return 0;
 }

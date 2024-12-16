@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #define FILE_NAME "shopping_data.txt"
+#define PYTHON_SCRIPT "userInput.py"
 
 void clear_file() {
     FILE *file = fopen(FILE_NAME, "w");
