@@ -2,34 +2,39 @@ import tkinter as tk
 from tkinter import messagebox
 import os
 
-# File path for storing data
 current_dir = os.path.dirname(os.path.abspath(__file__))
 file_path = os.path.join(current_dir, "shopping_data.txt")
 
 class ShoppingApp:
     def __init__(self, master):
         self.master = master
-        self.master.title("Shopping List Manager")
-        self.master.geometry("600x500")
+        self.master.title("Buy by Threads")
+        self.master.geometry("550x550")
         self.master.configure(bg="#e8e8e8")
 
-        # Fonts and Colors
+        self.title_font = ("Helvetica", 18, "bold")
         self.label_font = ("Helvetica", 12)
         self.bold_font = ("Helvetica", 12, "bold")
         self.bg_color = "#f9f9f9"
         self.button_color = "#5cb85c"
         self.button_text_color = "white"
 
-        # List to hold references to rows
         self.item_rows = []
 
-        # Create UI
+        self.create_title_label()
         self.create_user_frame()
         self.create_shopping_frame()
         self.create_action_frame()
 
-        # Start with one row of item entries
         self.add_item_row()
+
+    def create_title_label(self):
+        # A frame at the top for the main title
+        frame_title = tk.Frame(self.master, bg="#e8e8e8")
+        frame_title.pack(pady=10)
+
+        title_label = tk.Label(frame_title, text="Buy by Threads", font=self.title_font, bg="#e8e8e8", fg="#333333")
+        title_label.pack()
 
     def create_user_frame(self):
         # User Information Frame
@@ -39,6 +44,12 @@ class ShoppingApp:
         tk.Label(self.frame_user, text="User Name:", font=self.label_font, bg=self.bg_color).grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.entry_user = tk.Entry(self.frame_user, width=30, font=self.label_font)
         self.entry_user.grid(row=0, column=1, padx=5, pady=5)
+
+        # Threshold Input (numbers only)
+        vcmd_threshold = (self.master.register(self.validate_number), "%P")
+        tk.Label(self.frame_user, text="Threshold:", font=self.label_font, bg=self.bg_color).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.entry_threshold = tk.Entry(self.frame_user, width=30, font=self.label_font, validate="key", validatecommand=vcmd_threshold)
+        self.entry_threshold.grid(row=1, column=1, padx=5, pady=5)
 
     def create_shopping_frame(self):
         # Shopping List Frame
@@ -65,12 +76,11 @@ class ShoppingApp:
         self.label_status.pack(side="left", padx=10)
 
     def validate_number(self, new_text):
-        # This function will be called by the validation mechanism
-        # It should return True if the new text is all digits or empty, False otherwise
+        # This function checks if the new text is all digits or empty
         return new_text.isdigit() or new_text == ""
 
     def add_item_row(self):
-        # Validation command for count entries
+        # Validation command for count entries (numbers only)
         vcmd = (self.master.register(self.validate_number), "%P")
 
         row_frame = tk.Frame(self.items_container, bg=self.bg_color)
@@ -97,9 +107,15 @@ class ShoppingApp:
 
     def save_data(self):
         username = self.entry_user.get().strip()
+        threshold = self.entry_threshold.get().strip()
 
         if not username:
             messagebox.showwarning("Input Error", "Please provide a username.")
+            self.label_status.config(text="Submission failed. Try again.", fg="red")
+            return
+
+        if not threshold:
+            messagebox.showwarning("Input Error", "Please provide a threshold.")
             self.label_status.config(text="Submission failed. Try again.", fg="red")
             return
 
@@ -131,24 +147,22 @@ class ShoppingApp:
         if os.path.exists(file_path):
             with open(file_path, "r") as f:
                 for line in f:
-                    # Each line now will be comma-separated.
-                    # The first element is username in the new format.
                     line = line.strip()
                     if not line:
                         continue
                     parts = line.split(",")
-                    # parts[0] = username, parts[1] = is_repeated, then items...
+                    # parts[0] = username
                     if parts[0].strip() == username:
                         is_repeated = 1
                         break
 
-        # Format data: username,is_repeated,good1,count1,good2,count2,...
+        # Format data: username,is_repeated,threshold,good1,count1,good2,count2,...
         item_pairs = []
         for (item, count) in items:
             item_pairs.append(item)
             item_pairs.append(count)
 
-        final_line = ",".join([username, str(is_repeated)] + item_pairs)
+        final_line = ",".join([username, str(is_repeated), threshold] + item_pairs)
 
         # Write to file
         with open(file_path, "a") as file:
@@ -156,6 +170,7 @@ class ShoppingApp:
 
         # Clear fields after submission
         self.entry_user.delete(0, tk.END)
+        self.entry_threshold.delete(0, tk.END)
         self.reset_item_rows()
 
         self.label_status.config(text="Data saved successfully!", fg="green")
