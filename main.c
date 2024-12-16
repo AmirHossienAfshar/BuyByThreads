@@ -7,6 +7,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <semaphore.h>
+#include <time.h>
 
 sem_t rw_mutex[3][624];  
 sem_t mutex[3][624];    
@@ -30,6 +31,35 @@ struct ThreadArgs  {
     
     double score;
    } ;
+
+   void updateFile(const char *fileName, int newEntity,char *name,double price,double score) {
+    FILE *file = fopen(fileName, "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        return;
+    }
+
+    
+    
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+    char lastModified[30];
+    snprintf(lastModified, sizeof(lastModified), "%04d-%02d-%02d %02d:%02d:%02d",
+             t->tm_year + 1900, t->tm_mon + 1, t->tm_mday,
+             t->tm_hour, t->tm_min, t->tm_sec);
+
+    fprintf(file, "Name: %s\n", name);
+    fprintf(file, "Price: %.2f\n", price);
+    fprintf(file, "Score: %.1f\n", score);
+    fprintf(file, "Entity: %d\n", newEntity);
+    fprintf(file, "\nLast Modified: %s\n", lastModified);
+
+    
+    fclose(file);
+
+    printf("File updated successfully.\n");
+}
+
 
 
    double string_to_double(const char *str) {
@@ -194,14 +224,19 @@ if(res.foundItem==1){
        write(pipefds[8][1], price, 10); 
     }
     
-   // printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
-    //printf(" %d  \n ",num);
+     printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
+     printf(" %d  \n ",num);
 
     
-    sem_wait(&rw_mutex[data->store][data->input1]);
+     sem_wait(&rw_mutex[data->store][data->input1]);
     //////////////////////////////////////////////////
-
-      // we should update file here
+     
+      
+      // this part of code will be updated
+     if(data->store==1){
+        int newEntity= (int)entitymum- data->num;
+        updateFile(fileName,newEntity,data->itemName,pricenum,scorenum);
+     }
 
 
     /////////////////////////////////////////////////////////
