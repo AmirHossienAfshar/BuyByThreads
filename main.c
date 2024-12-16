@@ -18,7 +18,7 @@ int read_count[3][624] ={0};
 
 
 
-int pipefds[9][2];
+int pipefds[100][9][2];
 int pipes[100][2];
 
 struct ThreadArgs  {
@@ -27,6 +27,7 @@ struct ThreadArgs  {
     char itemName[50];
     int num;
     int store;
+    int user;
     } ;
 
    struct ThreadReturn  {
@@ -204,36 +205,36 @@ if(res.foundItem==1){
      
     
        sprintf(buff, "%.5f", res.score); 
-       write(pipefds[0][1], buff, 20); 
-       write(pipefds[1][1], score, 10); 
-       write(pipefds[2][1], price, 10); 
+       write(pipefds[data->user][0][1], buff, 20); 
+       write(pipefds[data->user][1][1], score, 10); 
+       write(pipefds[data->user][2][1], price, 10); 
     }
      if(data->store==1){
         char buff[50];
 
       
        sprintf(buff, "%.5f", res.score); 
-       write(pipefds[3][1], buff, 20); 
-       write(pipefds[4][1], score, 10); 
-       write(pipefds[5][1], price, 10); 
+       write(pipefds[data->user][3][1], buff, 20); 
+       write(pipefds[data->user][4][1], score, 10); 
+       write(pipefds[data->user][5][1], price, 10); 
     }
     if(data->store==2){
         char buff[50];
 
     
        sprintf(buff, "%.5f", res.score); 
-       write(pipefds[6][1], buff, 20); 
-       write(pipefds[7][1], score, 10); 
-       write(pipefds[8][1], price, 10); 
+       write(pipefds[data->user][6][1], buff, 20); 
+       write(pipefds[data->user][7][1], score, 10); 
+       write(pipefds[data->user][8][1], price, 10); 
     }
     
      printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
      printf(" %d  -- store:%d  \n ",num,data->store+1);
 
      char check[2];
-      read(pipes[0][0], check, sizeof(check));  
+      read(pipes[data->user][0], check, sizeof(check));  
      
-        write(pipes[0][1], check, sizeof(check));  
+        write(pipes[data->user][1], check, sizeof(check));  
       
     
      sem_wait(&rw_mutex[data->store][data->input1]);
@@ -270,8 +271,20 @@ if(res.foundItem==1){
    
 
 int main(){
-
+//inputs
     int user=0;
+    int treshhold=577;
+    char items[2][100] ;
+    int numitems[2];
+    int n=2;
+    strcpy(items[0],"Jeans");
+    strcpy(items[1],"Overcoat");
+    numitems[0]=6;
+    numitems[1]=6;
+//end of inputs
+    double scores[3]= {0};
+    double prices[3]={0};
+    double scoreitems[3]={0};
 
     for(int i=0; i<3;i++){
        for(int j=0;j<624;j++){
@@ -281,22 +294,13 @@ int main(){
         }
         
     }
-      if (pipe(pipes[0]) == -1) {
+      if (pipe(pipes[user]) == -1) {
     perror("Pipe creation failed");
     //exit(EXIT_FAILURE);
 }
 
-
-    char items[2][100] ;
-    int numitems[2];
-    double scores[3]= {0};
-    double prices[3]={0};
-    double scoreitems[3]={0};
-    int n=2;
-    strcpy(items[0],"Jeans");
-    strcpy(items[1],"Overcoat");
-    numitems[0]=6;
-    numitems[1]=6;
+    
+    
 
 
     for(int k=0;k<n;k++){
@@ -307,12 +311,12 @@ int main(){
     int number=numitems[k];
 
     for(int i=0;i<9;i++){
-    if (pipe(pipefds[i]) == -1) {
+    if (pipe(pipefds[user][i]) == -1) {
     perror("Pipe creation failed");
     //exit(EXIT_FAILURE);
 }
-int flags = fcntl(pipefds[i][0], F_GETFL, 0);
-fcntl(pipefds[i][0], F_SETFL, flags | O_NONBLOCK);
+int flags = fcntl(pipefds[user][i][0], F_GETFL, 0);
+fcntl(pipefds[user][i][0], F_SETFL, flags | O_NONBLOCK);
 
     }
 
@@ -337,6 +341,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=160+i+1;
         args[i].store=0;
+        args[i].user=user;
     }
     
 
@@ -373,6 +378,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=503+i+1;
         args[i].store=0;
+        args[i].user=user;
     }
     
 
@@ -407,6 +413,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=i+1;
         args[i].store=0;
+        args[i].user=user;
     }
     
 
@@ -440,6 +447,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=239+i+1;
         args[i].store=0;
+        args[i].user=user;
     }
     
 
@@ -468,7 +476,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Home/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=78+i+1;
         args[i].store=0;
@@ -500,7 +508,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Market/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=331+i+1;
         args[i].store=0;
@@ -532,7 +540,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Sports/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].store=0;
         args[i].input1=575+i+1;
@@ -564,7 +572,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Toys/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=424+i+1;
         args[i].store=0;
@@ -611,7 +619,7 @@ printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid()
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store2/Apparel/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=160+i+1;
         args[i].store=1;
@@ -651,6 +659,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=503+i+1;
         args[i].store=1;
+        args[i].user=user;
     }
     
 
@@ -685,6 +694,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=i+1;
         args[i].store=1;
+        args[i].user=user;
     }
     
 
@@ -714,7 +724,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store2/Food/");
 strcpy(args[i].itemName, item);
-
+         args[i].user=user;
         args[i].num=number;
         args[i].input1=239+i+1;
         args[i].store=1;
@@ -746,7 +756,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store2/Home/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=78+i+1;
         args[i].store=1;
@@ -778,7 +788,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store2/Market/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=331+i+1;
         args[i].store=1;
@@ -810,7 +820,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store2/Sports/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=575+i+1;
         args[i].store=1;
@@ -842,7 +852,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store2/Toys/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=424+i+1;
         args[i].store=1;
@@ -886,7 +896,7 @@ pid3 = fork();
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Apparel/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=160+i+1;
         args[i].store=2;
@@ -922,7 +932,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Beauty/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=503+i+1;
         args[i].store=2;
@@ -956,7 +966,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Digital/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=i+1;
         args[i].store=2;
@@ -989,7 +999,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Food/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=239+i+1;
         args[i].store=2;
@@ -1021,7 +1031,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Home/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=78+i+1;
         args[i].store=2;
@@ -1053,7 +1063,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Market/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=331+i+1;
         args[i].store=2;
@@ -1085,7 +1095,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Sports/");
 strcpy(args[i].itemName, item);
-
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=575+i+1;
         args[i].store=2;
@@ -1117,7 +1127,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store3/Toys/");
 strcpy(args[i].itemName, item);
-        
+        args[i].user=user;
         args[i].num=number;
         args[i].input1=424+i+1;
         args[i].store=2;
@@ -1153,21 +1163,21 @@ double score[3];
 double scoreitem[3];
 int notFound[3];
   struct pollfd pfds[3];
-    pfds[0].fd = pipefds[2][0];
+    pfds[0].fd = pipefds[user][2][0];
     pfds[0].events = POLLIN; 
-    pfds[1].fd = pipefds[5][0];
+    pfds[1].fd = pipefds[user][5][0];
     pfds[1].events = POLLIN; 
-    pfds[2].fd = pipefds[8][0];
+    pfds[2].fd = pipefds[user][8][0];
     pfds[2].events = POLLIN; 
 
  struct pollfd pfd= pfds[0];
 int pollResult = poll(&pfd, 1, 1000); 
     if (pollResult > 0 ){
-read(pipefds[0][0], buffer, sizeof(buffer));  
+read(pipefds[user][0][0], buffer, sizeof(buffer));  
 score[0]=string_to_double(buffer);
-read(pipefds[1][0], buffer, sizeof(buffer));  
+read(pipefds[user][1][0], buffer, sizeof(buffer));  
 scoreitem[0]=string_to_double(buffer);
-read(pipefds[2][0], buffer, sizeof(buffer));  
+read(pipefds[user][2][0], buffer, sizeof(buffer));  
 price[0]=string_to_double(buffer);
 
     }else{
@@ -1178,11 +1188,11 @@ price[0]=string_to_double(buffer);
 pfd= pfds[1];
  pollResult = poll(&pfd, 1, 1000); 
     if (pollResult > 0 ){
-read(pipefds[3][0], buffer, sizeof(buffer));  
+read(pipefds[user][3][0], buffer, sizeof(buffer));  
 score[1]=string_to_double(buffer);
-read(pipefds[4][0], buffer, sizeof(buffer));  
+read(pipefds[user][4][0], buffer, sizeof(buffer));  
 scoreitem[1]=string_to_double(buffer);
-read(pipefds[5][0], buffer, sizeof(buffer));  
+read(pipefds[user][5][0], buffer, sizeof(buffer));  
 price[1]=string_to_double(buffer);
 }else{
         score[1]=-1000;
@@ -1191,11 +1201,11 @@ price[1]=string_to_double(buffer);
 pfd= pfds[2];
  pollResult = poll(&pfd, 1, 1000); 
     if (pollResult > 0 ){
-read(pipefds[6][0], buffer, sizeof(buffer));  
+read(pipefds[user][6][0], buffer, sizeof(buffer));  
 score[2]=string_to_double(buffer);
-read(pipefds[7][0], buffer, sizeof(buffer));  
+read(pipefds[user][7][0], buffer, sizeof(buffer));  
 scoreitem[2]=string_to_double(buffer);
-read(pipefds[8][0], buffer, sizeof(buffer));  
+read(pipefds[user][8][0], buffer, sizeof(buffer));  
 price[2]=string_to_double(buffer);
 }else{
         score[2]=-1000;
@@ -1206,13 +1216,16 @@ scores[2]= scores[2]+score[2];
 prices[0]=prices[0]+ price[0];
 prices[1]=prices[1]+ price[1];
 prices[2]=prices[2]+ price[2];
+if(prices[0]>treshhold){scores[0]=-1000;}
+if(prices[1]>treshhold){scores[1]=-1000;}
+if(prices[2]>treshhold){scores[2]=-1000;}
 scoreitems[0]=scoreitems[0]+ scoreitem[0];
 scoreitems[1]=scoreitems[0]+ scoreitem[1];
 scoreitems[2]=scoreitems[0]+ scoreitem[2];
 for(int i=0;i<9;i++){
 
-    close(pipefds[i][0]);
-close(pipefds[i][1]); 
+    close(pipefds[user][i][0]);
+close(pipefds[user][i][1]); 
 }
 
 }
@@ -1233,6 +1246,12 @@ int store= maxId+1;
 
 if(scores[maxId]<=-1)printf("Not Found");else
 printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+// data :  scores[maxId],scoreitems[maxId],prices[maxId],store
+//recieving confirm
+
+// end of recieving confirm
+
+
 int confirm=1;
 if(scores[maxId]>-1&&confirm==1){
   
@@ -1240,13 +1259,13 @@ char *st;
 if(store==1){st="1";}
 if(store==2){st="2";}
 if(store==3){st="3";}
-write(pipes[0][1], st, 2); 
+write(pipes[user][1], st, 2); 
 
 }
 for(int i=0;i<9;i++){
 
-close(pipefds[i][0]);
-close(pipefds[i][1]); 
+close(pipefds[user][i][0]);
+close(pipefds[user][i][1]); 
 }
  for(int i=0; i<3;i++){
        for(int j=0;j<624;j++){
@@ -1256,9 +1275,5 @@ close(pipefds[i][1]);
         }
         
     }
-    
-
-
-
 return 0;
 }
