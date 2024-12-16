@@ -4,27 +4,22 @@ from tkinter import Tk, Label, Button
 
 PIPE_NAME = "/tmp/tk_to_c_pipe"
 
-# def send_confirmation(value, root):
-#     """Send a numeric confirmation value to the C program (0 or 1) and close the Tk window."""
-#     try:
-#         with open(PIPE_NAME, "w") as pipe:
-#             pipe.write(str(value))
-#     except FileNotFoundError:
-#         print("Error: Pipe not found.")
-#     except Exception as e:
-#         print(f"Error sending message: {e}")
-#     finally:
-#         root.destroy()  # Close the Tk window
-
 def send_confirmation(value, root):
-    print("Sending confirmation:", value)
+    """Send a numeric confirmation value to the C program (0 or 1) and close the Tk window."""
+    print("...Sending confirmation:", value)
     try:
         with open(PIPE_NAME, "w") as pipe:
             pipe.write(str(value))
             print("Data written to pipe successfully.")
+
+    except FileNotFoundError:
+        print("Error: Pipe not found.")
     except Exception as e:
         print(f"Error sending message: {e}")
-    root.destroy()
+    finally:
+        root.destroy()  # Close the Tk window
+
+
 
 def create_tk_instance(message):
     """Create a Tkinter window with yes/no buttons."""

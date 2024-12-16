@@ -1,7 +1,6 @@
 #ifndef CONFIRMATION_H
 #define CONFIRMATION_H
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -55,7 +54,7 @@ int listen_for_confirmation() {
     while (1) {
         ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
         if (bytes_read > 0) {
-            buffer[bytes_read] = '\0';
+            // buffer[bytes_read] = '\0';
             close(fd);
             return atoi(buffer);
         }
@@ -134,7 +133,7 @@ int confirm_function(char* shop_list) {
 
     // Wait for the listener to finish and get its exit status
     int status;
-    waitpid(listener_pid, &status, 0)ک
+    waitpid(listener_pid, &status, 0);
     if (WIFEXITED(status)) {
         // Retrieve child's exit status as the user's confirmation
         output = WEXITSTATUS(status);

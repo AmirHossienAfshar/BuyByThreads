@@ -269,7 +269,7 @@ if(res.foundItem==1){
 
 
    
-
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // void main_function(user, treshhold, items, numitems, n /*tedad cala ha*/){
 
 // }
@@ -282,10 +282,20 @@ int main(){
     char items[2][100] ;
     int numitems[2];
     int n=2;
+    
     strcpy(items[0],"Jeans");
-    strcpy(items[1],"Overcoat");
-    numitems[0]=6;
-    numitems[1]=6;
+    numitems[0]=1;
+
+    // strcpy(items[1],"Overcoat");
+
+    // strcpy(items[0],"Dress");
+    // strcpy(items[1],"Raincoat");
+    // numitems[0]=1;
+    // numitems[1]=1;
+
+    // strcpy(items[0],"Raincoat");
+    // numitems[0]=1;
+
 //end of inputs
     double scores[3]= {0};
     double prices[3]={0};
@@ -1237,20 +1247,23 @@ close(pipefds[user][i][1]);
 
 double max;
 int maxId;
-max=-1; maxId=0;
+max=-1; 
+maxId=0;
 
 
 for(int i=0;i<3;i++){
   if(scores[i]>max)  {
    
-    max= scores[i];
+    max = scores[i];
     maxId=i;
   }
 }
 int store= maxId+1;
 
-if(scores[maxId]<=-1)printf("Not Found");else
-printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+if(scores[maxId]<=-1)
+    printf("Not Found");
+else
+    printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
 // data :  scores[maxId],scoreitems[maxId],prices[maxId],store
 //recieving confirm
 
@@ -1258,7 +1271,9 @@ printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", score
 
 
 int confirm=1;
-confirm = confirm_function("random message");
+// confirm = confirm_function("random message");
+printf("\n the data is beign read////////////////////////////////////////////////////////");
+printf("\n %d \n", confirm);
 // this part I should be handeling...
 // I sould be calling the python file.
 
@@ -1271,18 +1286,72 @@ if(store==3){st="3";}
 write(pipes[user][1], st, 2); 
 
 }
-for(int i=0;i<9;i++){
 
-close(pipefds[user][i][0]);
-close(pipefds[user][i][1]); 
-}
- for(int i=0; i<3;i++){
-       for(int j=0;j<624;j++){
+// for (int i = 0; i < 9; i++) {
+//     if (close(pipefds[user][i][0]) != 0) {
+//         perror("Failed to close read pipe user");
+//     }
+//     if (close(pipefds[user][i][1]) != 0) {
+//         perror("Failed to close write pipe user");
+//     }
+// }
 
-             sem_destroy(&rw_mutex[i][j]);
-           sem_destroy(&mutex[i][j]);
+for (int i = 0; i < 9; i++) {
+    // Check and close read pipe
+    if (pipefds[user][i][0] > 0) {
+        if (close(pipefds[user][i][0]) == 0) {
+            pipefds[user][i][0] = -1;  // Mark as closed
+        } else {
+            fprintf(stderr, "Failed to close read pipe user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][0]);
+            perror("Close read pipe error");
         }
-        
+    } else {
+        fprintf(stderr, "Read pipe already closed or invalid: user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][0]);
     }
+
+    // Check and close write pipe
+    if (pipefds[user][i][1] > 0) {
+        if (close(pipefds[user][i][1]) == 0) {
+            pipefds[user][i][1] = -1;  // Mark as closed
+        } else {
+            fprintf(stderr, "Failed to close write pipe user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][1]);
+            perror("Close write pipe error");
+        }
+    } else {
+        fprintf(stderr, "Write pipe already closed or invalid: user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][1]);
+    }
+}
+
+
+for (int i = 0; i < 9; i++) {
+    for (int j = 0; j < 624; j++) {
+        if (sem_destroy(&rw_mutex[i][j]) != 0) {
+            perror("Failed to destroy rw_mutex");
+        }
+        if (sem_destroy(&mutex[i][j]) != 0) {
+            perror("Failed to destroy mutex");
+        }
+    }
+}
+
+
+
+// for(int i=0;i<9;i++){
+
+// close(pipefds[user][i][0]);
+// close(pipefds[user][i][1]); 
+// }
+//     for(int i=0; i<3;i++){
+//         for(int j=0;j<624;j++){
+
+//                 sem_destroy(&rw_mutex[i][j]);
+//             sem_destroy(&mutex[i][j]);
+//             }
+            
+//         }
+
+
+
+printf("the whole app is now done.");
 return 0;
 }
