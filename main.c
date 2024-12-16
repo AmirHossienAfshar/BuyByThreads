@@ -8,6 +8,8 @@
 #include <string.h>
 #include <semaphore.h>
 #include <time.h>
+#include <fcntl.h>
+
 
 sem_t rw_mutex[3][624];  
 sem_t mutex[3][624];    
@@ -283,16 +285,20 @@ int main(){
 
     for(int k=0;k<n;k++){
     
-    
+   
     pid_t pid1, pid2, pid3;
     char *item= items[k];
     int number=numitems[k];
 
-    for(int i=0;i<9;i++)
+    for(int i=0;i<9;i++){
     if (pipe(pipefds[i]) == -1) {
     perror("Pipe creation failed");
-    exit(EXIT_FAILURE);
+    //exit(EXIT_FAILURE);
 }
+int flags = fcntl(pipefds[i][0], F_GETFL, 0);
+fcntl(pipefds[i][0], F_SETFL, flags | O_NONBLOCK);
+
+    }
 
    char buffer[100];
     pid1 = fork();
@@ -1139,7 +1145,7 @@ int notFound[3];
     pfds[2].events = POLLIN; 
 
  struct pollfd pfd= pfds[0];
-int pollResult = poll(&pfd, 1, 10000); 
+int pollResult = poll(&pfd, 1, 1000); 
     if (pollResult > 0 ){
 read(pipefds[0][0], buffer, sizeof(buffer));  
 score[0]=string_to_double(buffer);
@@ -1154,7 +1160,7 @@ price[0]=string_to_double(buffer);
 
 
 pfd= pfds[1];
- pollResult = poll(&pfd, 1, 10000); 
+ pollResult = poll(&pfd, 1, 1000); 
     if (pollResult > 0 ){
 read(pipefds[3][0], buffer, sizeof(buffer));  
 score[1]=string_to_double(buffer);
@@ -1167,7 +1173,7 @@ price[1]=string_to_double(buffer);
     }
 
 pfd= pfds[2];
- pollResult = poll(&pfd, 1, 10000); 
+ pollResult = poll(&pfd, 1, 1000); 
     if (pollResult > 0 ){
 read(pipefds[6][0], buffer, sizeof(buffer));  
 score[2]=string_to_double(buffer);
