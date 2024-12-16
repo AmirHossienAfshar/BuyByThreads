@@ -225,7 +225,7 @@ if(res.foundItem==1){
     }
     
      printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
-     printf(" %d  \n ",num);
+     printf(" %d  -- store:%d  \n ",num,data->store+1);
 
     
      sem_wait(&rw_mutex[data->store][data->input1]);
@@ -233,7 +233,7 @@ if(res.foundItem==1){
      
       
       // this part of code will be updated
-     if(data->store==1){
+     if(data->store==2){
         int newEntity= (int)entitymum- data->num;
         updateFile(fileName,newEntity,data->itemName,pricenum,scorenum);
      }
@@ -267,12 +267,27 @@ int main(){
         }
         
     }
+
+
+    char items[2][100] ;
+    int numitems[2];
+    double scores[3]= {0};
+    double prices[3]={0};
+    double scoreitems[3]={0};
+    int n=2;
+    strcpy(items[0],"Jeans");
+    strcpy(items[1],"Overcoat");
+    numitems[0]=100;
+    numitems[1]=100;
+
+
+    for(int k=0;k<n;k++){
     
     
     pid_t pid1, pid2, pid3;
-    char *item= "Jeans";
-    int number=5;
-    
+    char *item= items[k];
+    int number=numitems[k];
+
     for(int i=0;i<9;i++)
     if (pipe(pipefds[i]) == -1) {
     perror("Pipe creation failed");
@@ -1134,7 +1149,7 @@ read(pipefds[2][0], buffer, sizeof(buffer));
 price[0]=string_to_double(buffer);
 
     }else{
-        score[0]=-1;
+        score[0]=-1000;
     }
 
 
@@ -1148,7 +1163,7 @@ scoreitem[1]=string_to_double(buffer);
 read(pipefds[5][0], buffer, sizeof(buffer));  
 price[1]=string_to_double(buffer);
 }else{
-        score[1]=-1;
+        score[1]=-1000;
     }
 
 pfd= pfds[2];
@@ -1161,8 +1176,24 @@ scoreitem[2]=string_to_double(buffer);
 read(pipefds[8][0], buffer, sizeof(buffer));  
 price[2]=string_to_double(buffer);
 }else{
-        score[2]=-1;
+        score[2]=-1000;
     }
+scores[0]=scores[0]+ score[0];
+scores[1]= scores[1]+ score[1];
+scores[2]= scores[2]+score[2];
+prices[0]=prices[0]+ price[0];
+prices[1]=prices[1]+ price[1];
+prices[2]=prices[2]+ price[2];
+scoreitems[0]=scoreitems[0]+ scoreitem[0];
+scoreitems[1]=scoreitems[0]+ scoreitem[1];
+scoreitems[2]=scoreitems[0]+ scoreitem[2];
+for(int i=0;i<9;i++){
+
+    close(pipefds[i][0]);
+close(pipefds[i][1]); 
+}
+
+}
 
 double max;
 int maxId;
@@ -1170,20 +1201,21 @@ max=-1; maxId=0;
 
 
 for(int i=0;i<3;i++){
-  if(score[i]>max)  {
+  if(scores[i]>max)  {
    
-    max= score[i];
+    max= scores[i];
     maxId=i;
   }
 }
 int store= maxId+1;
 
-if(score[maxId]==-1)printf("Not Found");else
-printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", score[maxId],scoreitem[maxId],price[maxId],store);
+if(scores[maxId]<=-1)printf("Not Found");else
+printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
 for(int i=0;i<9;i++){
 
-    close(pipefds[i][0]);
+close(pipefds[i][0]);
 close(pipefds[i][1]); 
+}
  for(int i=0; i<3;i++){
        for(int j=0;j<624;j++){
 
@@ -1194,7 +1226,7 @@ close(pipefds[i][1]);
     }
     
 
-}
+
 
 return 0;
 }
