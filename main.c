@@ -6,6 +6,12 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <string.h>
+#include <semaphore.h>
+
+sem_t rw_mutex[3][624];  
+sem_t mutex[3][624];    
+int read_count[3][624] ={0}; 
+
 
 
 
@@ -90,21 +96,37 @@ void* thread_function(void* arg ) {
      
      char *temp= ".txt";
      strcat(fileName,temp);
-    
-     FILE  *file = fopen(fileName, "r"); 
-     
      char line1[100];
      char line2[100];
      char line3[100];
      char line4[100];
      char line5[100];
      char line6[100];
+    
+  
+  sem_wait( &(mutex[data->store][data->input1])   ); 
+     read_count[data->store][data->input1]++;
+     if (read_count[data->store][data->input1] == 1) {
+        sem_wait(&rw_mutex[data->store][data->input1]); 
+     }
+     sem_post(&mutex[data->store][data->input1]);  
+     //reading
+     FILE  *file = fopen(fileName, "r"); 
      fgets(line1, sizeof(line1), file);
      fgets(line2, sizeof(line1), file);
      fgets(line3, sizeof(line1), file);
      fgets(line4, sizeof(line1), file);
      fgets(line5, sizeof(line1), file);
      fgets(line6, sizeof(line1), file);
+     fclose(file);
+     //end of reading
+      sem_wait(&mutex[data->store][data->input1]);   
+     read_count[data->store][data->input1]--;
+     if (read_count[data->store][data->input1] == 0) {
+        sem_post(&rw_mutex[data->store][data->input1]); 
+     }
+    sem_post(&mutex[data->store][data->input1]); 
+
       
    
     
@@ -134,7 +156,7 @@ entitymum =  string_to_double(entity);
 
 
      if(res.foundItem==1){
-       double sc= scorenum / pricenum;
+       double sc= scorenum*10.1 / pricenum;
        res.score= sc;
        
       
@@ -148,46 +170,47 @@ if(res.foundItem==1){
         char buff[50];
      
     
-       sprintf(buff, "%e", res.score); 
-       write(pipefds[0][1], buff, 8); 
-       write(pipefds[1][1], score, 8); 
-       write(pipefds[2][1], price, 8); 
+       sprintf(buff, "%.5f", res.score); 
+       write(pipefds[0][1], buff, 20); 
+       write(pipefds[1][1], score, 10); 
+       write(pipefds[2][1], price, 10); 
     }
      if(data->store==1){
         char buff[50];
 
-    
-       sprintf(buff, "%e", res.score); 
-       write(pipefds[3][1], buff, 8); 
-       write(pipefds[4][1], score, 8); 
-       write(pipefds[5][1], price, 8); 
+      
+       sprintf(buff, "%.5f", res.score); 
+       write(pipefds[3][1], buff, 20); 
+       write(pipefds[4][1], score, 10); 
+       write(pipefds[5][1], price, 10); 
     }
     if(data->store==2){
         char buff[50];
 
     
-       sprintf(buff, "%e", res.score); 
-       write(pipefds[6][1], buff, 8); 
-       write(pipefds[7][1], score, 8); 
-       write(pipefds[8][1], price, 8); 
+       sprintf(buff, "%.5f", res.score); 
+       write(pipefds[6][1], buff, 20); 
+       write(pipefds[7][1], score, 10); 
+       write(pipefds[8][1], price, 10); 
     }
     
-    printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
-    printf(" %d  \n ",num);
-    
-    
-    
-}
-          
+   // printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
+    //printf(" %d  \n ",num);
 
-    //////////////////////////////////////////////////////////////////////////////
-  
+    
+    sem_wait(&rw_mutex[data->store][data->input1]);
     //////////////////////////////////////////////////
 
       // we should update file here
 
+
     /////////////////////////////////////////////////////////
+     sem_post(&rw_mutex[data->store][data->input1]);
     
+    
+    
+    
+}
      
    
    
@@ -201,7 +224,16 @@ if(res.foundItem==1){
 
 int main(){
 
+    for(int i=0; i<3;i++){
+       for(int j=0;j<624;j++){
 
+             sem_init(&rw_mutex[i][j], 0, 1);
+           sem_init(&mutex[i][j], 0, 1);
+        }
+        
+    }
+    
+    
     pid_t pid1, pid2, pid3;
     char *item= "Jeans";
     int number=5;
@@ -510,6 +542,7 @@ strcpy(args[i].itemName, item);
 
         args[i].num=number;
         args[i].input1=160+i+1;
+        args[i].store=1;
     }
     
 
@@ -1056,7 +1089,7 @@ int notFound[3];
     pfds[2].events = POLLIN; 
 
  struct pollfd pfd= pfds[0];
-int pollResult = poll(&pfd, 1, 1000); 
+int pollResult = poll(&pfd, 1, 10000); 
     if (pollResult > 0 ){
 read(pipefds[0][0], buffer, sizeof(buffer));  
 score[0]=string_to_double(buffer);
@@ -1071,7 +1104,7 @@ price[0]=string_to_double(buffer);
 
 
 pfd= pfds[1];
- pollResult = poll(&pfd, 1, 1000); 
+ pollResult = poll(&pfd, 1, 10000); 
     if (pollResult > 0 ){
 read(pipefds[3][0], buffer, sizeof(buffer));  
 score[1]=string_to_double(buffer);
@@ -1084,7 +1117,7 @@ price[1]=string_to_double(buffer);
     }
 
 pfd= pfds[2];
- pollResult = poll(&pfd, 1, 1000); 
+ pollResult = poll(&pfd, 1, 10000); 
     if (pollResult > 0 ){
 read(pipefds[6][0], buffer, sizeof(buffer));  
 score[2]=string_to_double(buffer);
@@ -1098,9 +1131,12 @@ price[2]=string_to_double(buffer);
 
 double max;
 int maxId;
-max=score[0]; maxId=0;
-for(int i=1;i<3;i++){
+max=-1; maxId=0;
+
+
+for(int i=0;i<3;i++){
   if(score[i]>max)  {
+   
     max= score[i];
     maxId=i;
   }
@@ -1109,6 +1145,21 @@ int store= maxId+1;
 
 if(score[maxId]==-1)printf("Not Found");else
 printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", score[maxId],scoreitem[maxId],price[maxId],store);
+for(int i=0;i<9;i++){
+
+    close(pipefds[i][0]);
+close(pipefds[i][1]); 
+ for(int i=0; i<3;i++){
+       for(int j=0;j<624;j++){
+
+             sem_destroy(&rw_mutex[i][j]);
+           sem_destroy(&mutex[i][j]);
+        }
+        
+    }
+    
+
+}
 
 return 0;
 }
