@@ -144,25 +144,28 @@ class ShoppingApp:
 
         # Check if user already exists (to set is_repeated)
         is_repeated = 0
+        line_count = 0  # To calculate the line number (ID)
         if os.path.exists(file_path):
             with open(file_path, "r") as f:
                 for line in f:
+                    line_count += 1  # Count the lines
                     line = line.strip()
                     if not line:
                         continue
                     parts = line.split(",")
-                    # parts[0] = username
-                    if parts[0].strip() == username:
+                    if parts[0].strip() == username:  # Check for repeated user
                         is_repeated = 1
-                        break
 
-        # Format data: username,is_repeated,threshold,good1,count1,good2,count2,...
+        # Generate the unique ID
+        unique_id = line_count + 1
+
+        # Format data: username, id, threshold, is_repeated, good1, count1, good2, count2,...
         item_pairs = []
         for (item, count) in items:
             item_pairs.append(item)
             item_pairs.append(count)
 
-        final_line = ",".join([username, str(is_repeated), threshold] + item_pairs)
+        final_line = ",".join([username, str(unique_id), threshold, str(is_repeated)] + item_pairs)
 
         # Write to file
         with open(file_path, "a") as file:
@@ -174,6 +177,7 @@ class ShoppingApp:
         self.reset_item_rows()
 
         self.label_status.config(text="Data saved successfully!", fg="green")
+
 
 
 if __name__ == "__main__":

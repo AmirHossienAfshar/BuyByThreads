@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include "text_monitor.h"
+#include "mainFunction.h"
 
 
 void new_user(const char *line) {
@@ -14,32 +15,43 @@ void new_user(const char *line) {
     int count;
     char **parsed = parse_line(line, &count);
 
-    // bellow is the debugger
-    // if (count > 0) {
-    //     printf("Username: %s\n", parsed[0]);
+    // Format of line: user_name, id, threshold, is_repeated, good1, count1, good2, count2, ...
 
-    //     if (count > 1) {
-    //         printf("Is Repeated: %s\n", parsed[1]);
-    //     }
+    // Step 1: Extract user (shop ID)
+    int user = atoi(parsed[1]);  // shop_id is at index 1
+    int treshold = atoi(parsed[2]);
+    int is_repeated = atoi(parsed[3]);
 
-    //     if (count > 2) {
-    //         printf("treashold: %s\n", parsed[2]);
-    //     }
+    // Step 2: Initialize arrays for goods and counts
+    int max_goods = (count - 4) / 2;  // Goods start at index 4 (after threshold, is_repeated)
+    char **items = malloc(max_goods * sizeof(char*));
+    int *numitems = malloc(max_goods * sizeof(int));
+    int n = 0;  // Count of different types of goods
 
-    //     printf("Shopping List Items:\n");
-    //     for (int i = 3; i < count; i += 2) {
-    //         if (i + 1 < count) {
-    //             printf("  - %s, Count: %s\n", parsed[i], parsed[i+1]);
-    //         }
-    //     }
-    // }
+    // Step 3: Populate items and numitems
+    for (int i = 4; i < count; i += 2) {
+        items[n] = strdup(parsed[i]);        // Copy the good name
+        numitems[n] = atoi(parsed[i + 1]);   // Convert count to integer
+        n++;
+    }
 
-    
+    // Step 4: Call main_function with extracted parameters
+    printf("Calling main_function with user: %d, n: %d\n", user, n);
+    for (int i = 0; i < n; i++) {
+        printf("Item[%d]: %s, Count: %d\n", i, items[i], numitems[i]);
+    }
 
+    main_function(user, items, numitems, n, treshold, is_repeated);
 
+    // Step 5: Free dynamically allocated memory
+    for (int i = 0; i < n; i++) {
+        free(items[i]);  // Free each string in items
+    }
+    free(items);
+    free(numitems);
 
 }
-
+    
 // File monitoring function
 void *file_monitor(void *arg) {
     struct stat file_stat;
@@ -71,13 +83,13 @@ void *file_monitor(void *arg) {
 }
 
 // Simulate other tasks
-void run_other_functionality() {
-    printf("Running other tasks in the main thread...\n");
-    for (int i = 0; i < 1000; i++) {
-        printf("Main thread task iteration %d\n", i + 1);
-        sleep(1);
-    }
-}
+// void run_other_functionality() {
+//     printf("Running other tasks in the main thread...\n");
+//     for (int i = 0; i < 1000; i++) {
+//         printf("Main thread task iteration %d\n", i + 1);
+//         sleep(1);
+//     }
+// }
 
 int main() {
     pthread_t monitor_thread;
@@ -101,7 +113,8 @@ int main() {
         exit(1);
     } else {
         // Parent process: run other functionality
-        run_other_functionality();
+        
+        // run_other_functionality();
 
         // Wait for the file monitoring thread to finish
         pthread_join(monitor_thread, NULL);
