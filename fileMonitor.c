@@ -14,22 +14,30 @@ void new_user(const char *line) {
     int count;
     char **parsed = parse_line(line, &count);
 
-    if (count > 0) {
-        printf("Username: %s\n", parsed[0]);
+    // bellow is the debugger
+    // if (count > 0) {
+    //     printf("Username: %s\n", parsed[0]);
 
-        if (count > 1) {
-            printf("Is Repeated: %s\n", parsed[1]);
-        }
+    //     if (count > 1) {
+    //         printf("Is Repeated: %s\n", parsed[1]);
+    //     }
 
-        printf("Shopping List Items:\n");
-        for (int i = 2; i < count; i += 2) {
-            if (i + 1 < count) {
-                printf("  - %s, Count: %s\n", parsed[i], parsed[i+1]);
-            }
-        }
-    }
+    //     if (count > 2) {
+    //         printf("treashold: %s\n", parsed[2]);
+    //     }
 
-    // Rest of your logic...
+    //     printf("Shopping List Items:\n");
+    //     for (int i = 3; i < count; i += 2) {
+    //         if (i + 1 < count) {
+    //             printf("  - %s, Count: %s\n", parsed[i], parsed[i+1]);
+    //         }
+    //     }
+    // }
+
+    
+
+
+
 }
 
 // File monitoring function

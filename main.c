@@ -9,7 +9,7 @@
 #include <semaphore.h>
 #include <time.h>
 #include <fcntl.h>
-
+#include "confirmation.h"
 
 sem_t rw_mutex[3][624];  
 sem_t mutex[3][624];    
@@ -269,6 +269,11 @@ if(res.foundItem==1){
 
 
    
+
+// void main_function(user, treshhold, items, numitems, n /*tedad cala ha*/){
+
+// }
+
 
 int main(){
 //inputs
@@ -1253,6 +1258,10 @@ printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", score
 
 
 int confirm=1;
+confirm = confirm_function("random message");
+// this part I should be handeling...
+// I sould be calling the python file.
+
 if(scores[maxId]>-1&&confirm==1){
   
 char *st;
