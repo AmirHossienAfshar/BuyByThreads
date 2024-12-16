@@ -19,6 +19,7 @@ int read_count[3][624] ={0};
 
 
 int pipefds[9][2];
+int pipes[100][2];
 
 struct ThreadArgs  {
     int input1;   
@@ -229,13 +230,22 @@ if(res.foundItem==1){
      printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
      printf(" %d  -- store:%d  \n ",num,data->store+1);
 
+     char check[2];
+      read(pipes[0][0], check, sizeof(check));  
+     
+        write(pipes[0][1], check, sizeof(check));  
+      
     
      sem_wait(&rw_mutex[data->store][data->input1]);
     //////////////////////////////////////////////////
      
-      
+       
       // this part of code will be updated
-     if(data->store==2){
+     //  printf("----------%d---------------",atoi(check));
+       // printf("----------%d---------------",data->store);
+     
+     if(data->store+1==atoi(check)){
+        
         int newEntity= (int)entitymum- data->num;
         updateFile(fileName,newEntity,data->itemName,pricenum,scorenum);
      }
@@ -261,6 +271,8 @@ if(res.foundItem==1){
 
 int main(){
 
+    int user=0;
+
     for(int i=0; i<3;i++){
        for(int j=0;j<624;j++){
 
@@ -269,6 +281,10 @@ int main(){
         }
         
     }
+      if (pipe(pipes[0]) == -1) {
+    perror("Pipe creation failed");
+    //exit(EXIT_FAILURE);
+}
 
 
     char items[2][100] ;
@@ -279,8 +295,8 @@ int main(){
     int n=2;
     strcpy(items[0],"Jeans");
     strcpy(items[1],"Overcoat");
-    numitems[0]=100;
-    numitems[1]=100;
+    numitems[0]=6;
+    numitems[1]=6;
 
 
     for(int k=0;k<n;k++){
@@ -1217,6 +1233,16 @@ int store= maxId+1;
 
 if(scores[maxId]<=-1)printf("Not Found");else
 printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+int confirm=1;
+if(scores[maxId]>-1&&confirm==1){
+  
+char *st;
+if(store==1){st="1";}
+if(store==2){st="2";}
+if(store==3){st="3";}
+write(pipes[0][1], st, 2); 
+
+}
 for(int i=0;i<9;i++){
 
 close(pipefds[i][0]);
