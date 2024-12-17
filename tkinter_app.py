@@ -1,6 +1,6 @@
 import sys
 import os
-from tkinter import Tk, Label, Button, Entry, messagebox
+from tkinter import Tk, Label, Button, Entry
 
 PIPE_NAME = "/tmp/tk_to_c_pipe"
 
@@ -18,15 +18,15 @@ def send_confirmation_and_scores(confirmation, user_id, scores, root):
     finally:
         root.destroy()
 
-def display_scoring_window(goods, user_id):
+def display_scoring_window(goods, user_id, user_name):
     """Display scoring UI for goods."""
     root = Tk()
-    root.title("Rate Your Goods")
+    root.title(f"Rate Goods for {user_name}")  # Window title includes user_name
 
     scores = []
 
     # Header Label
-    Label(root, text=f"Rate the goods for User {user_id}:", font=("Arial", 14)).pack(pady=10)
+    Label(root, text=f"Rate the goods for User {user_name}:", font=("Arial", 14)).pack(pady=10)
 
     # Dynamic creation of labels and entry fields for scoring
     for idx, good in enumerate(goods):
@@ -44,23 +44,25 @@ def display_scoring_window(goods, user_id):
     root.mainloop()
 
 def main():
-    if len(sys.argv) < 3:
-        print("Usage: python tkinter_app.py <message> <user_id>")
+    if len(sys.argv) < 5:
+        print("Usage: python tkinter_app.py <message> <user_id> <goods_list> <user_name>")
         return
 
     message = sys.argv[1]
     user_id = int(sys.argv[2])
-    # goods = ["apple", "banana", "orange"]  # Replace with a dynamic goods list passed from the C side
+    goods_list = sys.argv[3]  # Comma-separated goods list
+    user_name = sys.argv[4]   # User name passed from C
+    goods = goods_list.split(",")  # Split into a list of goods
 
     root = Tk()
-    root.title("Confirmation Window")
+    root.title(f"Confirmation for {user_name}")  # Window title includes user_name
 
     # Display message
     Label(root, text=message, font=("Arial", 14)).pack(pady=20)
 
     # Yes Button
     Button(root, text="Yes", font=("Arial", 12), bg="green", fg="white",
-           command=lambda: [root.destroy(), display_scoring_window(goods, user_id)]).pack(side="left", padx=10)
+           command=lambda: [root.destroy(), display_scoring_window(goods, user_id, user_name)]).pack(side="left", padx=10)
 
     # No Button
     Button(root, text="No", font=("Arial", 12), bg="red", fg="white",
@@ -70,6 +72,7 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
 
 

@@ -18,6 +18,7 @@ void new_user(const char *line) {
     // Format of line: user_name, id, threshold, is_repeated, good1, count1, good2, count2, ...
 
     // Step 1: Extract user (shop ID)
+    char* username = parsed[0];
     int user = atoi(parsed[1]);  // shop_id is at index 1
     int treshold = atoi(parsed[2]);
     int is_repeated = atoi(parsed[3]);
@@ -41,7 +42,7 @@ void new_user(const char *line) {
         printf("Item[%d]: %s, Count: %d\n", i, items[i], numitems[i]);
     }
 
-    main_function(user, items, numitems, n, treshold, is_repeated);
+    main_function(user, items, numitems, n, treshold, is_repeated, username);
 
     // Step 5: Free dynamically allocated memory
     for (int i = 0; i < n; i++) {
