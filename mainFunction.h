@@ -116,6 +116,17 @@ void* thread_function(void* arg ) {
       struct ThreadReturn res;
      int num=data->input1;
     
+     char logfilename[100];
+      strcpy(logfilename,data->category);
+      char userlog[100];
+  sprintf(userlog,"USER%d_order.log",data->user);
+ strcat(logfilename,userlog);
+ 
+FILE  *filelog = fopen(logfilename, "a"); 
+ fprintf(filelog, "thread  %d read file %d.txt proccess:%d  \n",data->input1,data->input1,getpid);
+  fclose(filelog);
+
+
      char fileNum[10];
      
      sprintf(fileNum, "%d", num);
@@ -1268,11 +1279,15 @@ for(int i=0;i<3;i++){
   }
 }
 int store= maxId+1;
-
-if(scores[maxId]<=-1)
+char message[100];
+if(scores[maxId]<=-1){
     printf("Not Found");
-else
+    strcpy(message,"Not Found");
+}
+else{
     printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+    sprintf(message,"the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+}
 // data :  scores[maxId],scoreitems[maxId],prices[maxId],store
 //recieving confirm
 
@@ -1280,7 +1295,7 @@ else
 
 
 int confirm=1;
-confirm = confirm_function("random message");
+confirm = confirm_function(message);
 printf("\n the data is beign read////////////////////////////////////////////////////////");
 printf("\n %d \n", confirm);
 // this part I should be handeling...
@@ -1304,7 +1319,7 @@ write(pipes[user][1], st, 2);
 //         perror("Failed to close write pipe user");
 //     }
 // }
-
+/*
 for (int i = 0; i < 9; i++) {
     // Check and close read pipe
     if (pipefds[user][i][0] > 0) {
@@ -1330,6 +1345,8 @@ for (int i = 0; i < 9; i++) {
         fprintf(stderr, "Write pipe already closed or invalid: user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][1]);
     }
 }
+
+*/
 
 
 for (int i = 0; i < 9; i++) {
