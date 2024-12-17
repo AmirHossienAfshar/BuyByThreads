@@ -15,57 +15,37 @@
 
 #define PIPE_NAME "/tmp/tk_to_c_pipe"
 
-// int listen_for_confirmation() {
-//     int fd;
-//     char buffer[256];
-
-//     // Open the named pipe for reading
-//     printf("Listening for confirmation...\n");
-//     fd = open(PIPE_NAME, O_RDONLY);
-//     if (fd == -1) {
-//         perror("Failed to open pipe");
-//         return -1;
-//     }
-
-//     // Continuously read messages from the pipe
-//     while (1) {
-//         ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
-//         if (bytes_read > 0) {
-//             buffer[bytes_read] = '\0'; // Null-terminate the string
-//             return atoi(buffer);
-//         }
-//     }
-
-//     close(fd);
-//     return 0;
-// }
-
-int listen_for_confirmation() {
+int* listen_for_confirmation_and_scores(int num_items) {
     int fd;
-    char buffer[256];
+    static int results[256]; // Array to hold confirmation and ratings
+    char buffer[1024];
 
-    printf("Listening for confirmation...\n");
+    printf("Listening for confirmation and scores...\n");
     fd = open(PIPE_NAME, O_RDONLY);
     if (fd == -1) {
         perror("Failed to open pipe");
-        return -1; // Return an error code
+        return NULL;
     }
 
-    while (1) {
-        ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
-        if (bytes_read > 0) {
-            // buffer[bytes_read] = '\0';
-            close(fd);
-            return atoi(buffer);
+    ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+    if (bytes_read > 0) {
+        buffer[bytes_read] = '\0';
+        printf("Received from pipe: %s\n", buffer);
+
+        // Parse the buffer into integers (confirmation + ratings)
+        char *token = strtok(buffer, ",");
+        int i = 0;
+        while (token != NULL && i < num_items + 1) { // First is confirmation, then scores
+            results[i++] = atoi(token);
+            token = strtok(NULL, ",");
         }
     }
 
     close(fd);
-    return -1;
+    return results;
 }
 
-
-void trigger_tk(const char *message) {
+void trigger_tk(const char *message, int user_id) {
     pid_t pid = fork();  // Fork a new process
     if (pid == -1) {
         perror("Failed to fork process");
@@ -73,14 +53,74 @@ void trigger_tk(const char *message) {
     }
 
     if (pid == 0) {  // Child process
-        execlp("python3", "python3", "tkinter_app.py", message, NULL);
+        char user_id_str[10];
+        sprintf(user_id_str, "%d", user_id);
+        execlp("python3", "python3", "tkinter_app.py", message, user_id_str, NULL);
         perror("Failed to execute Python script");
         exit(EXIT_FAILURE);
     }
 }
 
+int* confirm_function(char* shop_list, int user_id, int num_items) {
+    if (mkfifo(PIPE_NAME, 0666) == -1 && errno != EEXIST) {
+        perror("Failed to create pipe");
+        return NULL;
+    }
+
+    trigger_tk(shop_list, user_id);
+
+    // Wait for scores and confirmation
+    return listen_for_confirmation_and_scores(num_items);
+}
+
+
+#endif
+
+
+
+
+
+// int listen_for_confirmation() {
+//     int fd;
+//     char buffer[256];
+
+//     printf("Listening for confirmation...\n");
+//     fd = open(PIPE_NAME, O_RDONLY);
+//     if (fd == -1) {
+//         perror("Failed to open pipe");
+//         return -1; // Return an error code
+//     }
+
+//     while (1) {
+//         ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);
+//         if (bytes_read > 0) {
+//             // buffer[bytes_read] = '\0'; // this part I commented, not sure if is necessery
+//             close(fd);
+//             return atoi(buffer);
+//         }
+//     }
+
+//     close(fd);
+//     return -1;
+// }
+
+
+// void trigger_tk(const char *message) {
+//     pid_t pid = fork();  // Fork a new process
+//     if (pid == -1) {
+//         perror("Failed to fork process");
+//         return;
+//     }
+
+//     if (pid == 0) {  // Child process
+//         execlp("python3", "python3", "tkinter_app.py", message, NULL);
+//         perror("Failed to execute Python script");
+//         exit(EXIT_FAILURE);
+//     }
+// }
+
+
 // int confirm_function(char* shop_list) {
-//     // Create the named pipe if it doesn't exist
 //     int output = 0;
 
 //     if (mkfifo(PIPE_NAME, 0666) == -1 && errno != EEXIST) {
@@ -88,7 +128,6 @@ void trigger_tk(const char *message) {
 //         return 1;
 //     }
 
-//     // Fork a process to listen for confirmations
 //     pid_t listener_pid = fork();
 //     if (listener_pid == -1) {
 //         perror("Failed to fork process");
@@ -96,51 +135,23 @@ void trigger_tk(const char *message) {
 //     }
 
 //     if (listener_pid == 0) {
-//         // Child process: handle listening
+//         // Child: handle listening
 //         output = listen_for_confirmation();
-//         exit(0);
+//         // write output somewhere the parent can access, such as:
+//         // - return it as an exit status:
+//         exit(output);
 //     }
 
+//     // Parent process
 //     trigger_tk(shop_list);
+
+//     // Wait for the listener to finish and get its exit status
+//     int status;
+//     waitpid(listener_pid, &status, 0);
+//     if (WIFEXITED(status)) {
+//         // Retrieve child's exit status as the user's confirmation
+//         output = WEXITSTATUS(status);
+//     }
 
 //     return output;
 // }
-
-int confirm_function(char* shop_list) {
-    int output = 0;
-
-    if (mkfifo(PIPE_NAME, 0666) == -1 && errno != EEXIST) {
-        perror("Failed to create pipe");
-        return 1;
-    }
-
-    pid_t listener_pid = fork();
-    if (listener_pid == -1) {
-        perror("Failed to fork process");
-        return 1;
-    }
-
-    if (listener_pid == 0) {
-        // Child: handle listening
-        output = listen_for_confirmation();
-        // write output somewhere the parent can access, such as:
-        // - return it as an exit status:
-        exit(output);
-    }
-
-    // Parent process
-    trigger_tk(shop_list);
-
-    // Wait for the listener to finish and get its exit status
-    int status;
-    waitpid(listener_pid, &status, 0);
-    if (WIFEXITED(status)) {
-        // Retrieve child's exit status as the user's confirmation
-        output = WEXITSTATUS(status);
-    }
-
-    return output;
-}
-
-
-#endif
