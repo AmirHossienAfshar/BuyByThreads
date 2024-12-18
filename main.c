@@ -1,3 +1,6 @@
+#ifndef MAINFUNCTION_H
+#define MAINFUNCTION_H
+
 #include <poll.h>
 #include <stdio.h>
 #include <unistd.h> 
@@ -18,8 +21,12 @@ int read_count[3][624] ={0};
 
 
 
-int pipefds[100][9][2];
+int pipefds[100][10][2];
 int pipes[100][2];
+int pipescore[100][1000][2];
+int pipeitem[100][1000][2];
+
+
 
 struct ThreadArgs  {
     int input1;   
@@ -28,6 +35,7 @@ struct ThreadArgs  {
     int num;
     int store;
     int user;
+    int n;
     } ;
 
    struct ThreadReturn  {
@@ -103,6 +111,24 @@ struct ThreadArgs  {
     return result;
 }
 
+int starts_with_ignore_case(const char *str1, const char *str2) {
+    size_t len2 = strlen(str2); // طول رشته دوم
+
+    // بررسی اگر رشته اول کوتاه‌تر از رشته دوم باشد
+    if (strlen(str1) < len2) {
+        return 0; // برابر نیستند
+    }
+
+    // مقایسه کاراکتر به کاراکتر
+    for (size_t i = 0; i < len2; i++) {
+        if (str1[i] != str2[i]) {
+            return 0; // برابر نیستند
+        }
+    }
+
+    return 1; // برابر هستند
+}
+
 void extract_substring_with_length(const char *source, char *destination, int start, int length) {
     strncpy(destination, source + start, length);
     destination[length] = '\0';  
@@ -113,6 +139,17 @@ void* thread_function(void* arg ) {
       struct ThreadReturn res;
      int num=data->input1;
     
+     char logfilename[100];
+      strcpy(logfilename,data->category);
+      char userlog[100];
+  sprintf(userlog,"USER%d_order.log",data->user);
+ strcat(logfilename,userlog);
+ 
+FILE  *filelog = fopen(logfilename, "a"); 
+ fprintf(filelog, "thread  %d read file %d.txt proccess:%d  \n",data->input1,data->input1,getpid);
+  fclose(filelog);
+
+
      char fileNum[10];
      
      sprintf(fileNum, "%d", num);
@@ -227,15 +264,46 @@ if(res.foundItem==1){
        write(pipefds[data->user][7][1], score, 10); 
        write(pipefds[data->user][8][1], price, 10); 
     }
-    
+
+    char whichstore[50];
+    sprintf(whichstore,"%d",data->input1);
+    write(pipefds[data->user][9][1],whichstore,sizeof(whichstore));
+
+
      printf("\n  %d kk  %lf **  ",res.foundItem,res.score);
      printf(" %d  -- store:%d  \n ",num,data->store+1);
 
      char check[2];
       read(pipes[data->user][0], check, sizeof(check));  
      
-        write(pipes[data->user][1], check, sizeof(check));  
-      
+       write(pipes[data->user][1], check, sizeof(check));  
+        double scoreuser=5;
+     
+  
+
+    if(data->store+1==atoi(check)){
+           char buffer1[50];
+           char buffer2[50];
+           
+              
+             
+              // read(pipeitem[0][data->input1][0], buffer1, sizeof(buffer1)); 
+               
+            //  write(pipeitem[0][data->input1][1], buffer1, sizeof(buffer1));
+               // printf("\nitem:%s\n",buffer1);
+     
+              // if(strcmp(data->itemName,buffer1)==0){
+                  printf("\n  input1:%d \n ",data->input1);
+                 read(pipescore[data->user][data->input1][0], buffer2, 4);  
+                  printf("\n   score:%s \n",buffer2);
+                  scoreuser= string_to_double(buffer2);
+                  printf("\n  doublescore:%.1f \n",scoreuser);
+                  
+                 
+            //   }
+           
+       } 
+     double newscore= (scoreuser+scorenum)/2;
     
      sem_wait(&rw_mutex[data->store][data->input1]);
     //////////////////////////////////////////////////
@@ -246,9 +314,9 @@ if(res.foundItem==1){
        // printf("----------%d---------------",data->store);
      
      if(data->store+1==atoi(check)){
-        
+        printf("\nfinalscore%lf\n",newscore);
         int newEntity= (int)entitymum- data->num;
-        updateFile(fileName,newEntity,data->itemName,pricenum,scorenum);
+        updateFile(fileName,newEntity,data->itemName,pricenum,newscore);
      }
 
 
@@ -275,16 +343,32 @@ if(res.foundItem==1){
 // }
 
 
-int main(){
+// int main(){
+int main_function(int user, char **items, int *numitems, int n, int treshhold, int is_repeated, char* user_name)
+{
 //inputs
+    // int user=0;
+    // int treshhold=577;
+    // char items[2][100] ;
+    // int numitems[2];
+    // int n=2;
     int user=0;
-    int treshhold=577;
-    char items[2][100] ;
-    int numitems[2];
-    int n=2;
     
+    char items[3][50];
     strcpy(items[0],"Jeans");
-    numitems[0]=1;
+    strcpy(items[1],"Sugar");
+    strcpy(items[2],"Salt");
+    int numitems[3]={1,1,1};
+    int n=3; int treshhold=50000; int is_repeated=0;
+////////////////////////
+    printf("\nthis is the main function calling........................\n");
+    printf("Calling main_function with user: %d, n: %d\n", user, n);
+    for (int i = 0; i < n; i++) {
+        printf("Item[%d]: %s, Count: %d\n", i, items[i], numitems[i]);
+    }
+    
+    // strcpy(items[0],"Jeans");
+    // numitems[0]=1;
 
     // strcpy(items[1],"Overcoat");
 
@@ -296,11 +380,24 @@ int main(){
     // strcpy(items[0],"Raincoat");
     // numitems[0]=1;
 
+        // below is the debugging tool for the reading stuff.
+    // printf("\nthis is a debugging part for reading the datasets..............\n");
+    // FILE *file = fopen("Dataset/Store1/Beauty/505.txt", "r");
+    // if (file) {
+    //     printf("File opened successfully\n");
+    //     fclose(file);
+    // } else {
+    //     perror("Error opening file");
+    // }
+    // printf("\n...............................................................\n");
+
+
+
 //end of inputs
     double scores[3]= {0};
     double prices[3]={0};
     double scoreitems[3]={0};
-
+    int mypathes257[n];
     for(int i=0; i<3;i++){
        for(int j=0;j<624;j++){
 
@@ -325,7 +422,7 @@ int main(){
     char *item= items[k];
     int number=numitems[k];
 
-    for(int i=0;i<9;i++){
+    for(int i=0;i<10;i++){
     if (pipe(pipefds[user][i]) == -1) {
     perror("Pipe creation failed");
     //exit(EXIT_FAILURE);
@@ -333,8 +430,23 @@ int main(){
 int flags = fcntl(pipefds[user][i][0], F_GETFL, 0);
 fcntl(pipefds[user][i][0], F_SETFL, flags | O_NONBLOCK);
 
-    }
 
+
+    }
+    
+   for(int i=0;i<654;i++){
+        if (pipe(pipeitem[0][i]) == -1) {
+    perror("Pipe creation failed");}
+       int flags = fcntl(pipeitem[0][i][0], F_GETFL, 0);
+fcntl(pipeitem[0][i][0], F_SETFL, flags | O_NONBLOCK);
+
+
+
+  if (pipe(pipescore[0][i]) == -1) {
+    perror("Pipe creation failed");}
+         flags = fcntl(pipescore[0][i][0], F_GETFL, 0);
+fcntl(pipescore[0][i][0], F_SETFL, flags | O_NONBLOCK);
+   }
    char buffer[100];
     pid1 = fork();
     if (pid1 == 0) {
@@ -352,7 +464,7 @@ fcntl(pipefds[user][i][0], F_SETFL, flags | O_NONBLOCK);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Apparel/");
 strcpy(args[i].itemName, item);
-
+        args[i].n=n;
         args[i].num=number;
         args[i].input1=160+i+1;
         args[i].store=0;
@@ -365,7 +477,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -389,7 +501,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Beauty/");
 strcpy(args[i].itemName, item);
-
+        args[i].n=n;
         args[i].num=number;
         args[i].input1=503+i+1;
         args[i].store=0;
@@ -402,7 +514,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -424,7 +536,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Digital/");
 strcpy(args[i].itemName, item);
-
+        args[i].n=n;
         args[i].num=number;
         args[i].input1=i+1;
         args[i].store=0;
@@ -437,7 +549,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -458,7 +570,7 @@ strcpy(args[i].itemName, item);
     for( i=0;i<78;i++){
         strcpy(args[i].category, "Dataset/Store1/Food/");
 strcpy(args[i].itemName, item);
-
+        args[i].n=n;
         args[i].num=number;
         args[i].input1=239+i+1;
         args[i].store=0;
@@ -471,7 +583,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -495,6 +607,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=78+i+1;
         args[i].store=0;
+        args[i].n=n;
     }
     
 
@@ -503,7 +616,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -527,6 +640,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=331+i+1;
         args[i].store=0;
+        args[i].n=n;
     }
     
 
@@ -535,7 +649,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -559,6 +673,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].store=0;
         args[i].input1=575+i+1;
+        args[i].n=n;
     }
     
 
@@ -567,7 +682,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -591,6 +706,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=424+i+1;
         args[i].store=0;
+        args[i].n=n;
     }
     
 
@@ -599,7 +715,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -607,7 +723,7 @@ strcpy(args[i].itemName, item);
         pthread_join(threads[i], NULL);
     }
          ///////////////////////////////////////////////////////
-               return 0;}
+               return 0; }
             
 printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
 
@@ -638,6 +754,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=160+i+1;
         args[i].store=1;
+        args[i].n=n;
     }
     
 
@@ -646,7 +763,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -675,6 +792,7 @@ strcpy(args[i].itemName, item);
         args[i].input1=503+i+1;
         args[i].store=1;
         args[i].user=user;
+        args[i].n=n;
     }
     
 
@@ -683,7 +801,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -710,6 +828,7 @@ strcpy(args[i].itemName, item);
         args[i].input1=i+1;
         args[i].store=1;
         args[i].user=user;
+        args[i].n=n;
     }
     
 
@@ -718,7 +837,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -743,6 +862,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=239+i+1;
         args[i].store=1;
+        args[i].n=n;
     }
     
 
@@ -751,7 +871,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -775,6 +895,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=78+i+1;
         args[i].store=1;
+        args[i].n=n;
     }
     
 
@@ -783,7 +904,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -807,6 +928,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=331+i+1;
         args[i].store=1;
+        args[i].n=n;
     }
     
 
@@ -815,7 +937,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -839,6 +961,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=575+i+1;
         args[i].store=1;
+        args[i].n=n;
     }
     
 
@@ -847,7 +970,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -871,6 +994,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=424+i+1;
         args[i].store=1;
+        args[i].n=n;
     }
     
 
@@ -879,7 +1003,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -915,6 +1039,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=160+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -923,7 +1048,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -951,6 +1076,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=503+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -959,7 +1085,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -985,6 +1111,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -993,7 +1120,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -1018,6 +1145,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=239+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -1026,7 +1154,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -1050,6 +1178,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=78+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -1058,7 +1187,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -1082,6 +1211,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=331+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -1090,7 +1220,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -1114,6 +1244,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=575+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -1122,7 +1253,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -1146,6 +1277,7 @@ strcpy(args[i].itemName, item);
         args[i].num=number;
         args[i].input1=424+i+1;
         args[i].store=2;
+        args[i].n=n;
     }
     
 
@@ -1154,7 +1286,7 @@ strcpy(args[i].itemName, item);
         thread_args[i] = i + 1; 
         if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0) {
             perror("Failed to create thread");
-            return 1;
+            return 0;
         }
     }
 
@@ -1162,7 +1294,7 @@ strcpy(args[i].itemName, item);
         pthread_join(threads[i], NULL);
     }
          ///////////////////////////////////////////////////////
-               return 0;}
+               return 0; }
             
 
 
@@ -1228,15 +1360,20 @@ price[2]=string_to_double(buffer);
 scores[0]=scores[0]+ score[0];
 scores[1]= scores[1]+ score[1];
 scores[2]= scores[2]+score[2];
-prices[0]=prices[0]+ price[0];
-prices[1]=prices[1]+ price[1];
-prices[2]=prices[2]+ price[2];
+prices[0]=prices[0]+ price[0]*numitems[k];
+prices[1]=prices[1]+ price[1]*numitems[k];
+prices[2]=prices[2]+ price[2]*numitems[k];
 if(prices[0]>treshhold){scores[0]=-1000;}
 if(prices[1]>treshhold){scores[1]=-1000;}
 if(prices[2]>treshhold){scores[2]=-1000;}
 scoreitems[0]=scoreitems[0]+ scoreitem[0];
 scoreitems[1]=scoreitems[0]+ scoreitem[1];
 scoreitems[2]=scoreitems[0]+ scoreitem[2];
+
+char pathitemm[50];
+read(pipefds[user][9][0], pathitemm, sizeof(pathitemm));  
+mypathes257[k]=atoi(pathitemm);
+
 for(int i=0;i<9;i++){
 
     close(pipefds[user][i][0]);
@@ -1244,6 +1381,7 @@ close(pipefds[user][i][1]);
 }
 
 }
+
 
 double max;
 int maxId;
@@ -1259,24 +1397,33 @@ for(int i=0;i<3;i++){
   }
 }
 int store= maxId+1;
-
-if(scores[maxId]<=-1)
+char message[100];
+if(scores[maxId]<=-1){
     printf("Not Found");
-else
+    strcpy(message,"Not Found");
+}
+else{
     printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+    sprintf(message,"the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId],scoreitems[maxId],prices[maxId],store);
+}
 // data :  scores[maxId],scoreitems[maxId],prices[maxId],store
 //recieving confirm
 
 // end of recieving confirm
 
 
-int confirm=1;
-// confirm = confirm_function("random message");
+double confirm=1;
+//confirm = confirm_function(message);
 printf("\n the data is beign read////////////////////////////////////////////////////////");
-printf("\n %d \n", confirm);
+//printf("\n %d \n", confirm);
 // this part I should be handeling...
 // I sould be calling the python file.
-
+double user_scores_2_goods[n+1];
+user_scores_2_goods[0]=confirm;
+ for (int i = 1; i <= n; i++)
+    {
+        user_scores_2_goods[i]=4;
+    }
 if(scores[maxId]>-1&&confirm==1){
   
 char *st;
@@ -1284,6 +1431,20 @@ if(store==1){st="1";}
 if(store==2){st="2";}
 if(store==3){st="3";}
 write(pipes[user][1], st, 2); 
+
+ for (int i = 1; i <= n; i++)
+    {
+
+        
+   
+        char itemnamescor[50];
+        sprintf(itemnamescor,"%.1f",user_scores_2_goods[i]);
+        strcpy(itemnamescor,"4.0");
+        printf("Score for good %d: %s\n", i, itemnamescor);
+        write(pipescore[0][mypathes257[i-1]][1], itemnamescor ,4);
+       // close(pipeitem[0][i][1]);
+      
+    }
 
 }
 
@@ -1295,7 +1456,7 @@ write(pipes[user][1], st, 2);
 //         perror("Failed to close write pipe user");
 //     }
 // }
-
+/*
 for (int i = 0; i < 9; i++) {
     // Check and close read pipe
     if (pipefds[user][i][0] > 0) {
@@ -1321,6 +1482,8 @@ for (int i = 0; i < 9; i++) {
         fprintf(stderr, "Write pipe already closed or invalid: user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][1]);
     }
 }
+
+*/
 
 
 for (int i = 0; i < 9; i++) {
@@ -1353,5 +1516,8 @@ for (int i = 0; i < 9; i++) {
 
 
 printf("the whole app is now done.");
-return 0;
+// return 0;
 }
+
+
+#endif

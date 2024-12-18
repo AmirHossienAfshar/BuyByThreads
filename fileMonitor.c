@@ -8,51 +8,6 @@
 #include "text_monitor.h"
 #include "mainFunction.h"
 
-
-// void new_user(const char *line) {
-//     printf("New Line Detected: %s\n", line);
-
-//     int count;
-//     char **parsed = parse_line(line, &count);
-
-//     // Format of line: user_name, id, threshold, is_repeated, good1, count1, good2, count2, ...
-
-//     // Step 1: Extract user (shop ID)
-//     char* username = parsed[0];
-//     int user = atoi(parsed[1]);  // shop_id is at index 1
-//     int treshold = atoi(parsed[2]);
-//     int is_repeated = atoi(parsed[3]);
-
-//     // Step 2: Initialize arrays for goods and counts
-//     int max_goods = (count - 4) / 2;  // Goods start at index 4 (after threshold, is_repeated)
-//     char **items = malloc(max_goods * sizeof(char*));
-//     int *numitems = malloc(max_goods * sizeof(int));
-//     int n = 0;  // Count of different types of goods
-
-//     // Step 3: Populate items and numitems
-    // for (int i = 4; i < count; i += 2) {
-    //     items[n] = strdup(parsed[i]);        // Copy the good name
-    //     numitems[n] = atoi(parsed[i + 1]);   // Convert count to integer
-    //     n++;
-    // }
-
-//     // Step 4: Call main_function with extracted parameters
-    // printf("Calling main_function with user: %d, n: %d\n", user, n);
-    // for (int i = 0; i < n; i++) {
-    //     printf("Item[%d]: %s, Count: %d\n", i, items[i], numitems[i]);
-    // }
-
-//     main_function(user, items, numitems, n, treshold, is_repeated, username);
-
-//     // Step 5: Free dynamically allocated memory
-//     for (int i = 0; i < n; i++) {
-//         free(items[i]);  // Free each string in items
-//     }
-//     free(items);
-//     free(numitems);
-
-// }
-
 void new_user(const char *line) {
     printf("New Line Detected: this is the new_user function: %s\n", line);
 
@@ -83,9 +38,9 @@ void new_user(const char *line) {
     for (int i = 0; i < n; i++) {
         printf("Item[%d]: %s, Count: %d\n", i, items[i], numitems[i]);
     }
-
+    
     // Call main_function
-    // main_function(user, items, numitems, n, threshold, is_repeated, username);
+    main_function(user, items, numitems, n, threshold, is_repeated, username);
 
     // Free memory
     for (int i = 0; i < n; i++) free(items[i]);
@@ -94,14 +49,68 @@ void new_user(const char *line) {
 }
 
 
-// dummy new user to check...
-// void new_user(const char *line)
-// {
-//     int i = 0;
-//     printf("\n new user function is called. \n %d", i);
+// // dummy new user to check...
+// // void new_user(const char *line)
+// // {
+// //     int i = 0;
+// //     printf("\n new user function is called. \n %d", i);
+// // }
+
+
+// void *file_monitor(void *arg) {
+//     struct stat file_stat;
+//     time_t last_modified = 0;
+//     char *last_read_line = NULL; // Track the last processed line
+
+//     printf("Monitoring file changes in a separate thread...\n");
+
+//     while (1) {
+//         if (stat(FILE_NAME, &file_stat) == 0) {
+//             if (file_stat.st_mtime != last_modified) {
+//                 last_modified = file_stat.st_mtime;
+
+//                 // Fetch the last line from the file
+//                 char *new_line = get_last_line();
+//                 if (new_line) {
+//                     // Compare new_line with last_read_line
+//                     if (!last_read_line || strcmp(new_line, last_read_line) != 0) {
+//                         printf("New Line Detected file monitor funciton: %s\n", new_line);
+
+//                         // Free previous last_read_line and update it
+//                         free(last_read_line);
+//                         last_read_line = strdup(new_line);
+//                         new_user(new_line); // Process the new line
+//                     }
+//                     free(new_line); // Free dynamically allocated memory from get_last_line
+//                 }
+//             }
+//         } else {
+//             printf("File not found. Waiting for creation...\n");
+//         }
+//         sleep(1);  // Check every second
+//     }
+
+//     // Clean up before exiting
+//     free(last_read_line);
+//     return NULL;
 // }
+// Mutex for protecting access to shared resources (e.g., last_read_line)
+pthread_mutex_t line_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
+
+void *new_user_thread(void *arg) {
+    char *line = (char *)arg;
+
+    // Simulate processing the new user
+    printf("[DEBUG] Processing new user: %s\n", line);
+    new_user(line); // Call the actual new_user function
+
+    free(line); // Free the dynamically allocated memory
+    return NULL;
+}
+
+// File monitoring function
 void *file_monitor(void *arg) {
     struct stat file_stat;
     time_t last_modified = 0;
@@ -110,6 +119,7 @@ void *file_monitor(void *arg) {
     printf("Monitoring file changes in a separate thread...\n");
 
     while (1) {
+        // Check the file's modification time
         if (stat(FILE_NAME, &file_stat) == 0) {
             if (file_stat.st_mtime != last_modified) {
                 last_modified = file_stat.st_mtime;
@@ -117,22 +127,33 @@ void *file_monitor(void *arg) {
                 // Fetch the last line from the file
                 char *new_line = get_last_line();
                 if (new_line) {
-                    // Compare new_line with last_read_line
+                    pthread_mutex_lock(&line_mutex); // Lock before accessing shared resources
                     if (!last_read_line || strcmp(new_line, last_read_line) != 0) {
-                        printf("New Line Detected file monitor funciton: %s\n", new_line);
+                        printf("[DEBUG] New line detected: %s\n", new_line);
 
-                        // Free previous last_read_line and update it
+                        // Free the previous last_read_line and update it
                         free(last_read_line);
-                        last_read_line = strdup(new_line);
-                        new_user(new_line); // Process the new line
+                        last_read_line = strdup(new_line); // Update the last processed line
+
+                        // Spawn a new thread to handle the new user
+                        pthread_t thread;
+                        char *line_copy = strdup(new_line); // Make a copy for the thread
+                        if (pthread_create(&thread, NULL, new_user_thread, line_copy) != 0) {
+                            perror("Failed to create new_user thread");
+                            free(line_copy); // Free memory if thread creation fails
+                        } else {
+                            pthread_detach(thread); // Detach the thread to allow independent execution
+                        }
                     }
-                    free(new_line); // Free dynamically allocated memory from get_last_line
+                    pthread_mutex_unlock(&line_mutex); // Unlock after updating shared resources
+                    free(new_line); // Free the memory allocated by get_last_line
                 }
             }
         } else {
             printf("File not found. Waiting for creation...\n");
         }
-        sleep(1);  // Check every second
+
+        sleep(1); // Check every second
     }
 
     // Clean up before exiting
