@@ -435,17 +435,17 @@ fcntl(pipefds[user][i][0], F_SETFL, flags | O_NONBLOCK);
     }
     
    for(int i=0;i<654;i++){
-        if (pipe(pipeitem[0][i]) == -1) {
+        if (pipe(pipeitem[user][i]) == -1) {
     perror("Pipe creation failed");}
-       int flags = fcntl(pipeitem[0][i][0], F_GETFL, 0);
-fcntl(pipeitem[0][i][0], F_SETFL, flags | O_NONBLOCK);
+       int flags = fcntl(pipeitem[user][i][0], F_GETFL, 0);
+fcntl(pipeitem[user][i][0], F_SETFL, flags | O_NONBLOCK);
 
 
 
-  if (pipe(pipescore[0][i]) == -1) {
+  if (pipe(pipescore[user][i]) == -1) {
     perror("Pipe creation failed");}
-         flags = fcntl(pipescore[0][i][0], F_GETFL, 0);
-fcntl(pipescore[0][i][0], F_SETFL, flags | O_NONBLOCK);
+         flags = fcntl(pipescore[user][i][0], F_GETFL, 0);
+fcntl(pipescore[user][i][0], F_SETFL, flags | O_NONBLOCK);
    }
    char buffer[100];
     pid1 = fork();
@@ -1441,7 +1441,7 @@ write(pipes[user][1], st, 2);
         sprintf(itemnamescor,"%.1f",user_scores_2_goods[i]);
         strcpy(itemnamescor,"4.0");
         printf("Score for good %d: %s\n", i, itemnamescor);
-        write(pipescore[0][mypathes257[i-1]][1], itemnamescor ,4);
+        write(pipescore[user][mypathes257[i-1]][1], itemnamescor ,4);
        // close(pipeitem[0][i][1]);
       
     }
