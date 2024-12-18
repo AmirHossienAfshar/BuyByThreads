@@ -284,6 +284,18 @@ void main_function(int user, char **items, int *numitems, int n, int treshhold, 
     //  int numitems[2];
     //  int n=2;
 
+
+    // below is the debugging tool for the reading stuff.
+    // printf("\nthis is a debugging part for reading the datasets..............\n");
+    // FILE *file = fopen("Dataset/Store1/Beauty/505.txt", "r");
+    // if (file) {
+    //     printf("File opened successfully\n");
+    //     fclose(file);
+    // } else {
+    //     perror("Error opening file");
+    // }
+    // printf("\n...............................................................\n");
+
     printf("\nthis is the main function calling........................\n");
     printf("Calling main_function with user: %d, n: %d\n", user, n);
     for (int i = 0; i < n; i++)
