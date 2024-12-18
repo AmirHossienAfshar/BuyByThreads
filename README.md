@@ -1,72 +1,15 @@
 # BuyByThreads
 ### project schema
 
-#### Main Menu
+#### main code:
+the fileMonitor.c: this is the main app. when it is runned, a subprocess is made for the tkinter front end, and the tkinter front end pops up. ( this actully is made by execlb of the userInput.py. ) and there the main has a process checks for the new uesers came from the front end. the communication between these is made by the shared memory, which is the shopping_data.txt. any modifes in that file is cathched by the main. 
+the format of the input is looking like this:
+`user_name, user_id, treashold, is_repeated, good1, count1, good2, count2, ...`
+1. and user_id is a uniqe number (the line number in the txt file). 
+2. the user_name is the name.
+3. the treashold is the treashold.
+4. is_repeated is used for the discount offering.
+5. good1 is the first good.
+6. count1 is the count of the first good.
 
-- A Tkinter form with a text field for entering the username and a button to submit.
-- Clicking the button:
-    1. Passes the username to the C program to initialize a new process.
-    2. Opens a new page in Tkinter for goods selection.
-
-#### Goods Selection Page
-
-- Tkinter GUI with:
-    1. Text fields or dropdowns for entering/selecting goods.
-    2. A "Submit" button to send the goods list to the C program.
-
-#### C Backend Process
-
-- On submission:
-    1. Tkinter writes the username and goods list to a file (or passes them as command-line arguments).
-    2. The C program:
-        Processes the input.
-        Computes the goods' price and other parameters.
-        Writes the results to an output file (or returns them via stdout).
-
-#### Result Display
-
-- Tkinter reads the results (file or output) and updates the GUI with the prices and parameters.
----
-
-### Key Design Principles
-
-#### Frontend (Tkinter):
-- Use one main menu page to register or select users.
-- Each user can open a new "session" (a new Tkinter page).
-- Each session can interact with the backend independently.
-
-#### Backend (C):
-- Spawn a new process in the C backend for each user session.
-- Keep user data isolated by associating unique input/output files or process identifiers for each user.
-
----
-
-
-### Shopping List Manager - User Input Guide
-
-here is the explanation of how user input is processed and stored in a text file, using Tkinter-based python file.
-
-The Shopping List Manager collects a username and a list of shopping items through a graphical user interface (GUI) built with Tkinter. after submission, the data is stored in a text file shopping_data.txt in a structured format.
-
-#### How User Input Works
-
-Username Field: A single-line entry for the user's name.
-Shopping List Field: A multi-line text box for entering shopping items, with one item per line.
-
-#### Data Submission Process
-
-When the user clicks the "Save" button:
-
-- Data Collection:
-    The username is collected from the entry field.
-    The shopping list is collected from the dynammicaly-handled text boxes (there is a btn to add item, which allocates a new input), and the same for count.
-
-The username and the shopping list are joined with a colon `:`
-
-the output format is this:
-```pthon
-username:good1,count1,good2,count2,...
-```
-
-subdirectories of each stor:
-Apparel, Beauty, Digital, Food, Home, Market, Sports, Toys
+then after submiting, a new tread for the user is made by the heavy process begins with the function of new_user. it calls the main_function. this is where for each user 3 subprocess are made for each shop and 8 sub process for each sub directory. 
