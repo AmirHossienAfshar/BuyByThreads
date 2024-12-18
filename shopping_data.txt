@@ -1,1 +1,0 @@
-Amir,1,10000,0,Jeans,1,Sugar,1,Suit,2,Socks,2

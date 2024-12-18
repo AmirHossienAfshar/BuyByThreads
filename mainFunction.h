@@ -297,28 +297,30 @@ void *thread_function(void *arg)
         read(pipes[data->user][0], check, sizeof(check));
 
         write(pipes[data->user][1], check, sizeof(check));
-        double scoreuser = 5;
+        // double scoreuser = 5;
 
-        if (data->store + 1 == atoi(check))
-        {
-            char buffer1[50];
-            char buffer2[50];
+        // if (data->store + 1 == atoi(check))
+        // {
+        //     // char buffer1[50];
+        //     // char buffer2[50];
 
-            // read(pipeitem[0][data->input1][0], buffer1, sizeof(buffer1));
+        //     // // read(pipeitem[0][data->input1][0], buffer1, sizeof(buffer1));
 
-            //  write(pipeitem[0][data->input1][1], buffer1, sizeof(buffer1));
-            // printf("\nitem:%s\n",buffer1);
+        //     // //  write(pipeitem[0][data->input1][1], buffer1, sizeof(buffer1));
+        //     // // printf("\nitem:%s\n",buffer1);
 
-            // if(strcmp(data->itemName,buffer1)==0){
-            printf("\n  input1:%d \n ", data->input1);
-            read(pipescore[data->user][data->input1][0], buffer2, 4);
-            printf("\n   score:%s \n", buffer2);
-            scoreuser = string_to_double(buffer2);
-            printf("\n  doublescore:%.1f \n", scoreuser);
+        //     // // if(strcmp(data->itemName,buffer1)==0){
+        //     // printf("\n  input1:%d \n ", data->input1);
+        //     // read(pipescore[data->user][data->input1][0], buffer2, 4);
+        //     // printf("\n   score:%s \n", buffer2);
+        //     // scoreuser = string_to_double(buffer2);
+        //     // printf("\n  doublescore:%.1f \n", scoreuser);
 
-            //   }
-        }
-        double newscore = (scoreuser + scorenum) / 2;
+        //     // //   }
+            
+        // }
+
+        // double newscore = (scoreuser + scorenum) / 2;
 
         sem_wait(&rw_mutex[data->store][data->input1]);
         //////////////////////////////////////////////////
@@ -329,9 +331,9 @@ void *thread_function(void *arg)
 
         if (data->store + 1 == atoi(check))
         {
-            printf("\nfinalscore%lf\n", newscore);
+            // printf("\nfinalscore%lf\n", newscore);
             int newEntity = (int)entitymum - data->num;
-            updateFile(fileName, newEntity, data->itemName, pricenum, newscore);
+            updateFile(fileName, newEntity, data->itemName, pricenum, scorenum);
         }
 
         /////////////////////////////////////////////////////////
@@ -1585,15 +1587,66 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
         }
         write(pipes[user][1], st, 2);
 
-        for (int i = 1; i <= n; i++)
-        {
+        // for (int i = 1; i <= n; i++)
+        // {
 
-            char itemnamescor[50];
-            sprintf(itemnamescor, "%.1f", user_scores_2_goods[i]);
-            // strcpy(itemnamescor, "%.1f", user_scores_2_goods[i]);
-            printf("Score for good %d: %s\n", i, itemnamescor);
-            write(pipescore[user][mypathes257[i - 1]][1], itemnamescor, 4);
-            // close(pipeitem[0][i][1]);
+        //     char itemnamescor[50];
+        //     sprintf(itemnamescor, "%.1f", user_scores_2_goods[i]);
+        //     // strcpy(itemnamescor, "%.1f", user_scores_2_goods[i]);
+        //     printf("Score for good %d: %s\n", i, itemnamescor);
+        //     write(pipescore[user][mypathes257[i - 1]][1], itemnamescor, 4);
+        //     // close(pipeitem[0][i][1]);
+        // }
+        for (int i = 1; i <= n; i++)
+        {                
+            char fileName[50];
+            sprintf(fileName,"Dataset/Store%d/Home/%d.txt",store,mypathes257[i-1]);
+            char line1[100];
+                char line2[100];
+                char line3[100];
+                char line4[100];
+                char line5[100];
+                char line6[100];
+                
+            
+            sem_wait( &(mutex[user][mypathes257[i-1]])   ); 
+                read_count[store][mypathes257[i-1]]++;
+                if (read_count[store][mypathes257[i-1]] == 1) {
+                    sem_wait(&rw_mutex[store][mypathes257[i-1]]); 
+                }
+                sem_post(&mutex[store][mypathes257[i-1]]);  
+                //reading
+                FILE  *file = fopen(fileName, "r"); 
+                fgets(line1, sizeof(line1), file);
+                fgets(line2, sizeof(line1), file);
+                fgets(line3, sizeof(line1), file);
+                fgets(line4, sizeof(line1), file);
+                fgets(line5, sizeof(line1), file);
+                fgets(line6, sizeof(line1), file);
+                fclose(file);
+                //end of reading
+                sem_wait(&mutex[store][mypathes257[i-1]]);   
+                read_count[store][mypathes257[i-1]]--;
+                if (read_count[store][mypathes257[i-1]] == 0) {
+                    sem_post(&rw_mutex[store][mypathes257[i-1]]); 
+                }
+                sem_post(&mutex[store][mypathes257[i-1]]); 
+                char sc[10];char entity[10]; char price[10];
+            extract_substring_with_length(line3,sc,7,3);
+            extract_substring_with_length(line2,price,7,6);
+            
+                extract_substring_with_length(line4,entity,8,2);
+            
+            double pricenum= string_to_double(price);
+
+
+            double oldscore = string_to_double(sc);
+
+
+            double entitymum =  string_to_double(entity);
+
+            double newscore = (oldscore   + user_scores_2_goods[i])/2;
+            updateFile(fileName,entitymum,items[i-1],pricenum,newscore);
         }
     }
 
