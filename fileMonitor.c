@@ -8,6 +8,9 @@
 #include "text_monitor.h"
 #include "mainFunction.h"
 
+pthread_mutex_t line_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
 void new_user(const char *line) {
     printf("New Line Detected: this is the new_user function: %s\n", line);
 
@@ -47,47 +50,6 @@ void new_user(const char *line) {
     free(items);
     free(numitems);
 }
-
-
-// void *file_monitor(void *arg) {
-//     struct stat file_stat;
-//     time_t last_modified = 0;
-//     char *last_read_line = NULL; // Track the last processed line
-
-//     printf("Monitoring file changes in a separate thread...\n");
-
-//     while (1) {
-//         if (stat(FILE_NAME, &file_stat) == 0) {
-//             if (file_stat.st_mtime != last_modified) {
-//                 last_modified = file_stat.st_mtime;
-
-//                 // Fetch the last line from the file
-//                 char *new_line = get_last_line();
-//                 if (new_line) {
-//                     // Compare new_line with last_read_line
-//                     if (!last_read_line || strcmp(new_line, last_read_line) != 0) {
-//                         printf("New Line Detected file monitor funciton: %s\n", new_line);
-
-//                         // Free previous last_read_line and update it
-//                         free(last_read_line);
-//                         last_read_line = strdup(new_line);
-//                         new_user(new_line); // Process the new line
-//                     }
-//                     free(new_line); // Free dynamically allocated memory from get_last_line
-//                 }
-//             }
-//         } else {
-//             printf("File not found. Waiting for creation...\n");
-//         }
-//         sleep(1);  // Check every second
-//     }
-
-//     // Clean up before exiting
-//     free(last_read_line);
-//     return NULL;
-// }
-// Mutex for protecting access to shared resources (e.g., last_read_line)
-pthread_mutex_t line_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void *new_user_thread(void *arg) {
     char *line = (char *)arg;
@@ -194,3 +156,44 @@ int main() { // the newest... prolem was with the waitpid
         exit(0);
     }
 }
+
+
+
+// void *file_monitor(void *arg) {
+//     struct stat file_stat;
+//     time_t last_modified = 0;
+//     char *last_read_line = NULL; // Track the last processed line
+
+//     printf("Monitoring file changes in a separate thread...\n");
+
+//     while (1) {
+//         if (stat(FILE_NAME, &file_stat) == 0) {
+//             if (file_stat.st_mtime != last_modified) {
+//                 last_modified = file_stat.st_mtime;
+
+//                 // Fetch the last line from the file
+//                 char *new_line = get_last_line();
+//                 if (new_line) {
+//                     // Compare new_line with last_read_line
+//                     if (!last_read_line || strcmp(new_line, last_read_line) != 0) {
+//                         printf("New Line Detected file monitor funciton: %s\n", new_line);
+
+//                         // Free previous last_read_line and update it
+//                         free(last_read_line);
+//                         last_read_line = strdup(new_line);
+//                         new_user(new_line); // Process the new line
+//                     }
+//                     free(new_line); // Free dynamically allocated memory from get_last_line
+//                 }
+//             }
+//         } else {
+//             printf("File not found. Waiting for creation...\n");
+//         }
+//         sleep(1);  // Check every second
+//     }
+
+//     // Clean up before exiting
+//     free(last_read_line);
+//     return NULL;
+// }
+// Mutex for protecting access to shared resources (e.g., last_read_line)

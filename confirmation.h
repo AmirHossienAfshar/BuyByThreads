@@ -45,7 +45,7 @@ int* listen_for_confirmation_and_scores(int num_items) {
     return results;
 }
 
-void trigger_tk(const char *message, int user_id, char **goods_list, const char *user_name) {
+void trigger_tk(const char *message, int user_id, char **goods_list, int num_goods, const char *user_name) {
     pid_t pid = fork();  // Fork a new process
     if (pid == -1) {
         perror("Failed to fork process");
@@ -55,11 +55,38 @@ void trigger_tk(const char *message, int user_id, char **goods_list, const char 
     if (pid == 0) {  // Child process
         char user_id_str[10];
         sprintf(user_id_str, "%d", user_id);
-        execlp("python3", "python3", "tkinter_app.py", message, user_id_str, goods_list, user_name, NULL);
+
+        // Concatenate goods_list into a single string
+        char goods_combined[1024] = "";  // Buffer to hold the concatenated goods
+        for (int i = 0; i < num_goods; i++) {
+            strcat(goods_combined, goods_list[i]);
+            if (i < num_goods - 1) {
+                strcat(goods_combined, ",");
+            }
+        }
+
+        // Call Python script with concatenated goods list
+        execlp("python3", "python3", "tkinter_app.py", message, user_id_str, goods_combined, user_name, NULL);
         perror("Failed to execute Python script");
         exit(EXIT_FAILURE);
     }
 }
+
+// void trigger_tk(const char *message, int user_id, char **goods_list, const char *user_name) {
+//     pid_t pid = fork();  // Fork a new process
+//     if (pid == -1) {
+//         perror("Failed to fork process");
+//         return;
+//     }
+
+//     if (pid == 0) {  // Child process
+//         char user_id_str[10];
+//         sprintf(user_id_str, "%d", user_id);
+//         execlp("python3", "python3", "tkinter_app.py", message, user_id_str, goods_list, user_name, NULL);
+//         perror("Failed to execute Python script");
+//         exit(EXIT_FAILURE);
+//     }
+// }
 
 int* confirm_function(char* shop_list, int user_id, int num_items, char **goods_list, const char *user_name) {
     if (mkfifo(PIPE_NAME, 0666) == -1 && errno != EEXIST) {
@@ -67,11 +94,23 @@ int* confirm_function(char* shop_list, int user_id, int num_items, char **goods_
         return NULL;
     }
 
-    trigger_tk(shop_list, user_id, goods_list, user_name);
+    trigger_tk(shop_list, user_id, goods_list, num_items, user_name);
 
     // Wait for scores and confirmation
     return listen_for_confirmation_and_scores(num_items);
 }
+
+// int* confirm_function(char* shop_list, int user_id, int num_items, char **goods_list, const char *user_name) {
+//     if (mkfifo(PIPE_NAME, 0666) == -1 && errno != EEXIST) {
+//         perror("Failed to create pipe");
+//         return NULL;
+//     }
+
+//     trigger_tk(shop_list, user_id, goods_list, user_name);
+
+//     // Wait for scores and confirmation
+//     return listen_for_confirmation_and_scores(num_items);
+// }
 
 #endif
 
@@ -79,6 +118,9 @@ int* confirm_function(char* shop_list, int user_id, int num_items, char **goods_
 
 
 
+
+//////////////////////////////////////////////////////////////old code below///////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // int listen_for_confirmation() {
 //     int fd;
 //     char buffer[256];
