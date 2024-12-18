@@ -29,7 +29,6 @@ class ShoppingApp:
         self.add_item_row()
 
     def create_title_label(self):
-        # A frame at the top for the main title
         frame_title = tk.Frame(self.master, bg="#e8e8e8")
         frame_title.pack(pady=10)
 
@@ -37,7 +36,6 @@ class ShoppingApp:
         title_label.pack()
 
     def create_user_frame(self):
-        # User Information Frame
         self.frame_user = tk.LabelFrame(self.master, text="User Information", font=self.bold_font, bg=self.bg_color, padx=10, pady=10)
         self.frame_user.pack(padx=20, pady=10, fill="x")
 
@@ -45,27 +43,22 @@ class ShoppingApp:
         self.entry_user = tk.Entry(self.frame_user, width=30, font=self.label_font)
         self.entry_user.grid(row=0, column=1, padx=5, pady=5)
 
-        # Threshold Input (numbers only)
         vcmd_threshold = (self.master.register(self.validate_number), "%P")
         tk.Label(self.frame_user, text="Threshold:", font=self.label_font, bg=self.bg_color).grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.entry_threshold = tk.Entry(self.frame_user, width=30, font=self.label_font, validate="key", validatecommand=vcmd_threshold)
         self.entry_threshold.grid(row=1, column=1, padx=5, pady=5)
 
     def create_shopping_frame(self):
-        # Shopping List Frame
         self.frame_list = tk.LabelFrame(self.master, text="Shopping List", font=self.bold_font, bg=self.bg_color, padx=10, pady=10)
         self.frame_list.pack(padx=20, pady=10, fill="both", expand=True)
 
-        # A frame inside to hold item rows
         self.items_container = tk.Frame(self.frame_list, bg=self.bg_color)
         self.items_container.pack(fill="both", expand=True)
 
-        # Add Row Button
         self.btn_add_row = tk.Button(self.frame_list, text="Add Item", font=self.bold_font, bg="#0275d8", fg="white", command=self.add_item_row)
         self.btn_add_row.pack(pady=10)
 
     def create_action_frame(self):
-        # Action Frame (Save and Status)
         self.frame_action = tk.Frame(self.master, bg="#e8e8e8")
         self.frame_action.pack(pady=10)
 
@@ -76,11 +69,9 @@ class ShoppingApp:
         self.label_status.pack(side="left", padx=10)
 
     def validate_number(self, new_text):
-        # This function checks if the new text is all digits or empty
         return new_text.isdigit() or new_text == ""
 
     def add_item_row(self):
-        # Validation command for count entries (numbers only)
         vcmd = (self.master.register(self.validate_number), "%P")
 
         row_frame = tk.Frame(self.items_container, bg=self.bg_color)
@@ -97,12 +88,10 @@ class ShoppingApp:
         self.item_rows.append((item_entry, count_entry))
 
     def reset_item_rows(self):
-        # Remove all item rows from the UI
         for (item_entry, count_entry) in self.item_rows:
             item_entry.master.destroy()
         self.item_rows = []
 
-        # Add back a single empty row
         self.add_item_row()
 
     def save_data(self):
@@ -119,17 +108,14 @@ class ShoppingApp:
             self.label_status.config(text="Submission failed. Try again.", fg="red")
             return
 
-        # Validate item rows
         items = []
         for (item_entry, count_entry) in self.item_rows:
             item = item_entry.get().strip()
             count = count_entry.get().strip()
 
-            # If both are empty, ignore this row
             if not item and not count:
                 continue
 
-            # If one is empty, it's invalid
             if not item or not count:
                 messagebox.showwarning("Input Error", "Please fill out all item and count fields or remove empty rows before saving.")
                 self.label_status.config(text="Submission failed. Try again.", fg="red")
@@ -142,24 +128,21 @@ class ShoppingApp:
             self.label_status.config(text="Submission failed. Try again.", fg="red")
             return
 
-        # Check if user already exists (to set is_repeated)
         is_repeated = 0
-        line_count = 0  # To calculate the line number (ID)
+        line_count = 0
         if os.path.exists(file_path):
             with open(file_path, "r") as f:
                 for line in f:
-                    line_count += 1  # Count the lines
+                    line_count += 1
                     line = line.strip()
                     if not line:
                         continue
                     parts = line.split(",")
-                    if parts[0].strip() == username:  # Check for repeated user
+                    if parts[0].strip() == username:
                         is_repeated = 1
 
-        # Generate the unique ID
         unique_id = line_count + 1
 
-        # Format data: username, id, threshold, is_repeated, good1, count1, good2, count2,...
         item_pairs = []
         for (item, count) in items:
             item_pairs.append(item)
@@ -167,11 +150,9 @@ class ShoppingApp:
 
         final_line = ",".join([username, str(unique_id), threshold, str(is_repeated)] + item_pairs)
 
-        # Write to file
         with open(file_path, "a") as file:
             file.write(f"{final_line}\n")
 
-        # Clear fields after submission
         self.entry_user.delete(0, tk.END)
         self.entry_threshold.delete(0, tk.END)
         self.reset_item_rows()

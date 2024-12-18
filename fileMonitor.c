@@ -19,7 +19,6 @@ void new_user(const char *line) {
 
     // Format of line: user_name, id, threshold, is_repeated, good1, count1, good2, count2, ...
 
-    // Extract user information
     char* username = parsed[0];
     int user = atoi(parsed[1]);
     int threshold = atoi(parsed[2]);
@@ -66,55 +65,52 @@ void *new_user_thread(void *arg) {
 void *file_monitor(void *arg) {
     struct stat file_stat;
     time_t last_modified = 0;
-    char *last_read_line = NULL; // Track the last processed line
+    char *last_read_line = NULL;
 
     printf("Monitoring file changes in a separate thread...\n");
 
     while (1) {
-        // Check the file's modification time
         if (stat(FILE_NAME, &file_stat) == 0) {
             if (file_stat.st_mtime != last_modified) {
                 last_modified = file_stat.st_mtime;
 
-                // Fetch the last line from the file
                 char *new_line = get_last_line();
                 if (new_line) {
-                    pthread_mutex_lock(&line_mutex); // Lock before accessing shared resources
+                    pthread_mutex_lock(&line_mutex); 
                     if (!last_read_line || strcmp(new_line, last_read_line) != 0) {
                         printf("[DEBUG] New line detected: %s\n", new_line);
 
-                        // Free the previous last_read_line and update it
+                        
                         free(last_read_line);
-                        last_read_line = strdup(new_line); // Update the last processed line
+                        last_read_line = strdup(new_line); 
 
-                        // Spawn a new thread to handle the new user
+                        // a new thread to handle the new user
                         pthread_t thread;
                         char *line_copy = strdup(new_line); // Make a copy for the thread
                         if (pthread_create(&thread, NULL, new_user_thread, line_copy) != 0) {
                             perror("Failed to create new_user thread");
-                            free(line_copy); // Free memory if thread creation fails
+                            free(line_copy);
                         } else {
-                            pthread_detach(thread); // Detach the thread to allow independent execution
+                            pthread_detach(thread);
                         }
                     }
-                    pthread_mutex_unlock(&line_mutex); // Unlock after updating shared resources
-                    free(new_line); // Free the memory allocated by get_last_line
+                    pthread_mutex_unlock(&line_mutex);
+                    free(new_line);
                 }
             }
         } else {
             printf("File not found. Waiting for creation...\n");
         }
 
-        sleep(1); // Check every second
+        sleep(1);
     }
 
-    // Clean up before exiting
     free(last_read_line);
     return NULL;
 }
 
 
-int main() { // the newest... prolem was with the waitpid
+int main() {
     pid_t pid = fork();
 
     if (pid == -1) {
@@ -123,23 +119,18 @@ int main() { // the newest... prolem was with the waitpid
     }
 
     if (pid == 0) {
-        // Child process: Execute the Python script
-        // execlp("python3", "python3", "shopping_app.py", (char *)NULL);
         execlp("python3", "python3", PYTHON_SCRIPT, (char *)NULL);
         perror("Failed to start Python script");
         exit(1);
     } else {
-        // Parent process: Monitor the child
         printf("Started Python script with PID: %d\n", pid);
 
-        // Start file monitoring in a separate thread
         pthread_t monitor_thread;
         if (pthread_create(&monitor_thread, NULL, file_monitor, NULL) != 0) {
             perror("Failed to create file monitor thread");
             exit(1);
         }
 
-        // Wait for the child process (Python script) to terminate
         int status;
         waitpid(pid, &status, 0);
 
@@ -149,51 +140,9 @@ int main() { // the newest... prolem was with the waitpid
             printf("Python script was terminated by signal %d\n", WTERMSIG(status));
         }
 
-        // Cleanup and terminate the C program
         printf("Terminating C program as the Python script has exited.\n");
         pthread_cancel(monitor_thread);
         pthread_join(monitor_thread, NULL);
         exit(0);
     }
 }
-
-
-
-// void *file_monitor(void *arg) {
-//     struct stat file_stat;
-//     time_t last_modified = 0;
-//     char *last_read_line = NULL; // Track the last processed line
-
-//     printf("Monitoring file changes in a separate thread...\n");
-
-//     while (1) {
-//         if (stat(FILE_NAME, &file_stat) == 0) {
-//             if (file_stat.st_mtime != last_modified) {
-//                 last_modified = file_stat.st_mtime;
-
-//                 // Fetch the last line from the file
-//                 char *new_line = get_last_line();
-//                 if (new_line) {
-//                     // Compare new_line with last_read_line
-//                     if (!last_read_line || strcmp(new_line, last_read_line) != 0) {
-//                         printf("New Line Detected file monitor funciton: %s\n", new_line);
-
-//                         // Free previous last_read_line and update it
-//                         free(last_read_line);
-//                         last_read_line = strdup(new_line);
-//                         new_user(new_line); // Process the new line
-//                     }
-//                     free(new_line); // Free dynamically allocated memory from get_last_line
-//                 }
-//             }
-//         } else {
-//             printf("File not found. Waiting for creation...\n");
-//         }
-//         sleep(1);  // Check every second
-//     }
-
-//     // Clean up before exiting
-//     free(last_read_line);
-//     return NULL;
-// }
-// Mutex for protecting access to shared resources (e.g., last_read_line)

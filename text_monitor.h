@@ -12,7 +12,7 @@
 
 
 char **parse_line(const char *line, int *count) {
-    static char *components[256]; // To store parsed components
+    static char *components[256];
     char *line_copy = strdup(line);
     *count = 0;
 
@@ -23,7 +23,7 @@ char **parse_line(const char *line, int *count) {
     }
 
     free(line_copy);
-    return components;  // components[0] = username, components[1] = is_repeated, ...
+    return components;
 }
 
 
@@ -40,40 +40,20 @@ char *get_last_line() {
 
     while (fgets(temp_line, sizeof(temp_line), file)) {
         if (last_line) {
-            free(last_line); // Free previous allocation
+            free(last_line);
         }
-        last_line = strdup(temp_line); // Duplicate the current line
+        last_line = strdup(temp_line);
     }
 
     fclose(file);
 
     if (last_line) {
-        // Remove trailing newline or spaces
         size_t len = strlen(last_line);
         while (len > 0 && (last_line[len - 1] == '\n' || last_line[len - 1] == ' ' || last_line[len - 1] == '\r')) {
             last_line[--len] = '\0';
         }
     }
-    return last_line; // Return dynamically allocated last line
+    return last_line;
 }
 
 #endif
-
-
-
-// // Function to get the last line from the file, old one, used to work, but had some bugs.
-// char *get_last_line() {
-//     FILE *file = fopen(FILE_NAME, "r");
-//     static char last_line[256];
-
-//     if (!file) {
-//         printf("Error: Could not open file.\n");
-//         return NULL;
-//     }
-//     // Read the last line
-//     while (fgets(last_line, sizeof(last_line), file)) {
-//         // Read through all lines
-//     }
-//     fclose(file);
-//     return strlen(last_line) > 0 ? last_line : NULL;
-// }
