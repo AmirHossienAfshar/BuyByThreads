@@ -17,13 +17,22 @@
 
 sem_t rw_mutex[3][624];
 sem_t mutex[3][624];
+sem_t write_mutex[3];
 int read_count[3][624] = {0};
 
 int pipefds[100][10][2];
 int pipes[100][2];
 int pipescore[100][1000][2];
 int pipeitem[100][1000][2];
-
+int pipe1[100][2];
+int pipe2[100][2];
+int pipe3[100][2];
+int pipe4[100][2];
+int pipe5[100][2];
+int pipe6[100][2];
+int pipe7[100][2];
+int pipe8[100][2];
+int pipe9[100][2];
 void format_goods_list(char **goods_list, int num_goods, char *formatted_output, int output_size) {
     // Ensure the buffer is empty
     formatted_output[0] = '\0';
@@ -32,7 +41,7 @@ void format_goods_list(char **goods_list, int num_goods, char *formatted_output,
     for (int i = 0; i < num_goods; i++) {
         // Check for buffer overflow before appending
         if (strlen(formatted_output) + strlen(goods_list[i]) + 2 > output_size) {
-            fprintf(stderr, "Error: Buffer size too small for concatenated goods list.\n");
+           
             break;
         }
 
@@ -54,6 +63,9 @@ struct ThreadArgs
     int store;
     int user;
     int n;
+};
+struct Threadorderargs{
+int user;char **items; int *numitems;int n;int treshhold; int is_repeated; char *user_name;
 };
 
 struct ThreadReturn
@@ -160,7 +172,8 @@ void *thread_function(void *arg)
 
     struct ThreadReturn res;
     int num = data->input1;
-
+//printf(" PID: %d create thred  PID: %d\n",  getpid(),pthread_self());
+sem_wait(&write_mutex[data->store-1]);
     char logfilename[100];
     strcpy(logfilename, data->category);
     char userlog[100];
@@ -168,14 +181,14 @@ void *thread_function(void *arg)
     strcat(logfilename, userlog);
 
     FILE *filelog = fopen(logfilename, "a");
-    fprintf(filelog, "thread  %d read file %d.txt proccess:%d  \n", data->input1, data->input1, getpid);
+    fprintf(filelog, "thread  %d read file %d.txt proccess:%d  \n", data->input1, data->input1, getpid());
     fclose(filelog);
-
+sem_post(&write_mutex[data->store-1]);
     char fileNum[10];
 
     sprintf(fileNum, "%d", num);
 
-    char *fileName, score[10], entity[10], price[10];
+    char *fileName, score[10], entity[10], price[10];char name[20];
     char *endptr1;
     char *endptr2;
     char *endptr3;
@@ -219,28 +232,29 @@ void *thread_function(void *arg)
         sem_post(&rw_mutex[data->store][data->input1]);
     }
     sem_post(&mutex[data->store][data->input1]);
-
+    extract_substring_with_length(line1,name,6,strlen(line1)-6);
     extract_substring_with_length(line2, price, 7, 6);
     extract_substring_with_length(line3, score, 7, 3);
     extract_substring_with_length(line4, entity, 8, 2);
 
     pricenum = string_to_double(price);
-    // strtod(price, &endptr1);
-
     scorenum = string_to_double(score);
-    // strtod(score, &endptr2);
-
     entitymum = string_to_double(entity);
-    /// strtod(entity, &endptr3);
 
     char *tempchar = data->itemName;
     int n = strlen(data->itemName) + 7;
     if (strstr(line1, data->itemName) == NULL || strlen(line1) != n)
-    {
+   {
+       
         res.foundItem = 0;
     }
     else
     {
+          sem_wait(&write_mutex[data->store-1]);
+    FILE  *filelog = fopen(logfilename, "a"); 
+    fprintf(filelog, "thread  %d found truefile proccess:%d  \n",data->input1,getpid());
+    fclose(filelog);
+    sem_post(&write_mutex[data->store-1]);
         res.foundItem = 1;
     }
     if (entitymum < data->num)
@@ -290,121 +304,46 @@ void *thread_function(void *arg)
         sprintf(whichstore, "%d", data->input1);
         write(pipefds[data->user][9][1], whichstore, sizeof(whichstore));
 
-        printf("\n  %d kk  %lf **  ", res.foundItem, res.score);
-        printf(" %d  -- store:%d  \n ", num, data->store + 1);
 
         char check[2];
         read(pipes[data->user][0], check, sizeof(check));
 
         write(pipes[data->user][1], check, sizeof(check));
-        double scoreuser = 5;
-
-        if (data->store + 1 == atoi(check))
+       if (data->store + 1 == atoi(check))
         {
-            char buffer1[50];
-            char buffer2[50];
-
-            // read(pipeitem[0][data->input1][0], buffer1, sizeof(buffer1));
-
-            //  write(pipeitem[0][data->input1][1], buffer1, sizeof(buffer1));
-            // printf("\nitem:%s\n",buffer1);
-
-            // if(strcmp(data->itemName,buffer1)==0){
-            printf("\n  input1:%d \n ", data->input1);
-            read(pipescore[data->user][data->input1][0], buffer2, 4);
-            printf("\n   score:%s \n", buffer2);
-            scoreuser = string_to_double(buffer2);
-            printf("\n  doublescore:%.1f \n", scoreuser);
-
-            //   }
-            
-        }
-
-        double newscore = (scoreuser + scorenum) / 2;
-
-        sem_wait(&rw_mutex[data->store][data->input1]);
-        //////////////////////////////////////////////////
-
-        // this part of code will be updated
-        //  printf("----------%d---------------",atoi(check));
-        // printf("----------%d---------------",data->store);
-
-        if (data->store + 1 == atoi(check))
-        {
-            printf("\nfinalscore%lf\n", newscore);
+             FILE *file = fopen(fileName, "r");
+    fgets(line1, sizeof(line1), file);
+    fgets(line2, sizeof(line1), file);
+    fgets(line3, sizeof(line1), file);
+    fclose(file);
+    extract_substring_with_length(line3, score, 7, 3);
+    scorenum = string_to_double(score);
+ 
             int newEntity = (int)entitymum - data->num;
-            updateFile(fileName, newEntity, data->itemName, pricenum, newscore);
+            updateFile(fileName, newEntity, data->itemName, pricenum, scorenum);
         }
 
-        /////////////////////////////////////////////////////////
+        
         sem_post(&rw_mutex[data->store][data->input1]);
     }
 
     return 0;
 }
 
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// void main_function(user, treshhold, items, numitems, n /*tedad cala ha*/){
-
-// }
-
-// int main(){
-int main_function(int user, char **items, int *numitems, int n, int treshhold, int is_repeated, char *user_name)
-{
-
-    float off = 1.0;
+void *odrder_thread(void *arg){
+    struct Threadorderargs *data = (struct Threadorderargs *)arg;
+    int user=data->user; char **items =data->items; int *numitems=data->numitems; int n= data->n; int treshhold=data->treshhold;int is_repeated=data->treshhold; char *user_name=data->user_name;
+ float off = 1.0;
     if (is_repeated == 1)
     {
         off = 0.5;
     }
-
-    // inputs
-    //  int user=0;
-    //  int treshhold=577;
-    //  char items[2][100] ;
-    //  int numitems[2];
-    //  int n=2;
-    //  int user=0;
-
-    // char items[3][50];
-    // strcpy(items[0],"Jeans");
-    // strcpy(items[1],"Sugar");
-    // strcpy(items[2],"Salt");
-    // int numitems[3]={1,1,1};
-    // int n=3; int treshhold=50000; int is_repeated=0;
-    ////////////////////////
-    printf("\nthis is the main function calling........................\n");
-    printf("Calling main_function with user: %d, n: %d\n", user, n);
-    for (int i = 0; i < n; i++)
+     for (int i = 0; i < n; i++)
     {
         printf("Item[%d]: %s, Count: %d\n", i, items[i], numitems[i]);
     }
 
-    // strcpy(items[0],"Jeans");
-    // numitems[0]=1;
-
-    // strcpy(items[1],"Overcoat");
-
-    // strcpy(items[0],"Dress");
-    // strcpy(items[1],"Raincoat");
-    // numitems[0]=1;
-    // numitems[1]=1;
-
-    // strcpy(items[0],"Raincoat");
-    // numitems[0]=1;
-
-    // below is the debugging tool for the reading stuff.
-    // printf("\nthis is a debugging part for reading the datasets..............\n");
-    // FILE *file = fopen("Dataset/Store1/Beauty/505.txt", "r");
-    // if (file) {
-    //     printf("File opened successfully\n");
-    //     fclose(file);
-    // } else {
-    //     perror("Error opening file");
-    // }
-    // printf("\n...............................................................\n");
-
-    // end of inputs
+    
     double scores[3] = {0};
     double prices[3] = {0};
     double scoreitems[3] = {0};
@@ -424,9 +363,10 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
         // exit(EXIT_FAILURE);
     }
 
+
     for (int k = 0; k < n; k++)
     {
-
+      
         pid_t pid1, pid2, pid3;
         char *item = items[k];
         int number = numitems[k];
@@ -463,18 +403,18 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
         if (pid1 == 0)
         {
             int s = 0;
+              printf("I am the first child for store1. My PID: %d, Parent PID: %d\n", getpid(), getppid());
             pid_t p1, p2, p3, p4, p5, p6, p7, p8;
             p1 = fork();
             if (p1 == 0)
             {
-                // Write your code here /////////////////////////////////////////////////////////////
-
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+               printf(" PID: %d create child for Apparel PID: %d\n",  getppid(),getpid());
+                pthread_t threads[79];
+                int thread_args[79];
+                struct ThreadArgs args[79];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store1/Apparel/");
                     strcpy(args[i].itemName, item);
@@ -485,7 +425,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].user = user;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -495,8 +435,9 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
+                   
                     pthread_join(threads[i], NULL);
                 }
 
@@ -506,14 +447,14 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p2 = fork();
             if (p2 == 0)
             {
-                // Write your code here ///////////////////////////////////////////////////
+                printf(" PID: %d create child for Beauty PID: %d\n",  getppid(),getpid());
 
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                pthread_t threads[72];
+                int thread_args[72];
+                struct ThreadArgs args[72];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store1/Beauty/");
                     strcpy(args[i].itemName, item);
@@ -524,7 +465,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].user = user;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -534,7 +475,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -546,7 +487,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p3 = fork();
             if (p3 == 0)
             {
-                // Write your code here ////////////////////////////////////////////////
+                printf(" PID: %d create child for Digital PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -584,13 +525,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p4 = fork();
             if (p4 == 0)
             {
-                // Write your code here ////////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+               printf(" PID: %d create child for Food PID: %d\n",  getppid(),getpid());
+                pthread_t threads[92];
+                int thread_args[92];
+                struct ThreadArgs args[92];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store1/Food/");
                     strcpy(args[i].itemName, item);
@@ -601,7 +542,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].user = user;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -611,7 +552,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -621,13 +562,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p5 = fork();
             if (p5 == 0)
             {
-                // Write your code here /////////////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Home PID: %d\n",  getppid(),getpid());
+                pthread_t threads[82];
+                int thread_args[82];
+                struct ThreadArgs args[82];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store1/Home/");
                     strcpy(args[i].itemName, item);
@@ -638,7 +579,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -648,7 +589,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -658,7 +599,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p6 = fork();
             if (p6 == 0)
             {
-                // Write your code here /////////////////////////////////////////////////////
+                printf(" PID: %d create child for Market PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -695,7 +636,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p7 = fork();
             if (p7 == 0)
             {
-                // Write your code here /////////////////////////////////////////
+                printf(" PID: %d create child for Sports PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -726,19 +667,19 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                 {
                     pthread_join(threads[i], NULL);
                 }
-                ///////////////////////////////////////////////////////////////
+                
                 return 0;
             }
             p8 = fork();
             if (p8 == 0)
             {
-                // Write your code here ////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Toys PID: %d\n",  getppid(),getpid());
+                pthread_t threads[79];
+                int thread_args[79];
+                struct ThreadArgs args[79];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store1/Toys/");
                     strcpy(args[i].itemName, item);
@@ -749,7 +690,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -759,7 +700,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -767,27 +708,27 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                 return 0;
             }
 
-            printf("I am the first child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
+          
 
             return 0;
         }
 
         pid2 = fork();
         if (pid2 == 0)
-        {
+        {    
+               printf("I am the second child for store2. My PID: %d, Parent PID: %d\n", getpid(), getppid());
 
             pid_t p1, p2, p3, p4, p5, p6, p7, p8;
             p1 = fork();
             if (p1 == 0)
             {
-                // Write your code here /////////////////////////////////////////////////////////////
-
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Apparel PID: %d\n",  getppid(),getpid());
+                pthread_t threads[79];
+                int thread_args[79];
+                struct ThreadArgs args[79];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store2/Apparel/");
                     strcpy(args[i].itemName, item);
@@ -798,7 +739,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -808,7 +749,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -819,14 +760,14 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p2 = fork();
             if (p2 == 0)
             {
-                // Write your code here ///////////////////////////////////////////////////
-
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                
+                printf(" PID: %d create child for Beauty PID: %d\n",  getppid(),getpid());
+                pthread_t threads[72];
+                int thread_args[72];
+                struct ThreadArgs args[72];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store2/Beauty/");
                     strcpy(args[i].itemName, item);
@@ -838,7 +779,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -848,7 +789,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -860,7 +801,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p3 = fork();
             if (p3 == 0)
             {
-                // Write your code here ////////////////////////////////////////////////
+                printf(" PID: %d create child for Digital PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -899,13 +840,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p4 = fork();
             if (p4 == 0)
             {
-                // Write your code here ////////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Food PID: %d\n",  getppid(),getpid());
+                pthread_t threads[92];
+                int thread_args[92];
+                struct ThreadArgs args[92];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store2/Food/");
                     strcpy(args[i].itemName, item);
@@ -916,7 +857,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -926,7 +867,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -936,13 +877,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p5 = fork();
             if (p5 == 0)
             {
-                // Write your code here /////////////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Home PID: %d\n",  getppid(),getpid());
+                pthread_t threads[82];
+                int thread_args[82];
+                struct ThreadArgs args[82];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store2/Home/");
                     strcpy(args[i].itemName, item);
@@ -953,7 +894,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -963,17 +904,17 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
-                /////////////////////////////////////////////////////////////////
+                
                 return 0;
             }
             p6 = fork();
             if (p6 == 0)
             {
-                // Write your code here /////////////////////////////////////////////////////
+                printf(" PID: %d create child for Market PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -1004,13 +945,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                 {
                     pthread_join(threads[i], NULL);
                 }
-                ////////////////////////////////////////////////////////////////////////////
+                
                 return 0;
             }
             p7 = fork();
             if (p7 == 0)
             {
-                // Write your code here /////////////////////////////////////////
+                printf(" PID: %d create child for Sports PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -1041,19 +982,19 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                 {
                     pthread_join(threads[i], NULL);
                 }
-                ///////////////////////////////////////////////////////////////
+                
                 return 0;
             }
             p8 = fork();
             if (p8 == 0)
             {
-                // Write your code here ////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Toys PID: %d\n",  getppid(),getpid());
+                pthread_t threads[79];
+                int thread_args[79];
+                struct ThreadArgs args[79];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store2/Toys/");
                     strcpy(args[i].itemName, item);
@@ -1064,7 +1005,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -1074,7 +1015,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -1082,26 +1023,26 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                 return 0;
             }
 
-            printf("I am the second child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
+         
             return 0;
         }
 
         pid3 = fork();
         if (pid3 == 0)
         {
-
+             printf("I am the third child for store3. My PID: %d, Parent PID: %d\n", getpid(), getppid());
             pid_t p1, p2, p3, p4, p5, p6, p7, p8;
             p1 = fork();
             if (p1 == 0)
             {
-                // Write your code here /////////////////////////////////////////////////////////////
+                printf(" PID: %d create child for Apparel PID: %d\n",  getppid(),getpid());
 
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                pthread_t threads[79];
+                int thread_args[79];
+                struct ThreadArgs args[79];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store3/Apparel/");
                     strcpy(args[i].itemName, item);
@@ -1112,7 +1053,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -1122,7 +1063,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -1133,14 +1074,14 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p2 = fork();
             if (p2 == 0)
             {
-                // Write your code here ///////////////////////////////////////////////////
+                 printf(" PID: %d create child for Beauty PID: %d\n",  getppid(),getpid());
 
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                pthread_t threads[72];
+                int thread_args[72];
+                struct ThreadArgs args[72];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store3/Beauty/");
                     strcpy(args[i].itemName, item);
@@ -1151,7 +1092,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -1161,7 +1102,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 72; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -1173,7 +1114,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p3 = fork();
             if (p3 == 0)
             {
-                // Write your code here ////////////////////////////////////////////////
+                 printf(" PID: %d create child for Digital PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -1211,13 +1152,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p4 = fork();
             if (p4 == 0)
             {
-                // Write your code here ////////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                 printf(" PID: %d create child for Food PID: %d\n",  getppid(),getpid());
+                pthread_t threads[92];
+                int thread_args[92];
+                struct ThreadArgs args[92];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store3/Food/");
                     strcpy(args[i].itemName, item);
@@ -1228,7 +1169,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -1238,7 +1179,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 92; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -1248,13 +1189,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p5 = fork();
             if (p5 == 0)
             {
-                // Write your code here /////////////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                 printf(" PID: %d create child for Home PID: %d\n",  getppid(),getpid());
+                pthread_t threads[82];
+                int thread_args[82];
+                struct ThreadArgs args[82];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store3/Home/");
                     strcpy(args[i].itemName, item);
@@ -1265,7 +1206,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -1275,7 +1216,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 82; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -1285,7 +1226,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p6 = fork();
             if (p6 == 0)
             {
-                // Write your code here /////////////////////////////////////////////////////
+                 printf(" PID: %d create child for Market PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -1322,7 +1263,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p7 = fork();
             if (p7 == 0)
             {
-                // Write your code here /////////////////////////////////////////
+                printf(" PID: %d create child for Sports PID: %d\n",  getppid(),getpid());
                 pthread_t threads[78];
                 int thread_args[78];
                 struct ThreadArgs args[78];
@@ -1359,13 +1300,13 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             p8 = fork();
             if (p8 == 0)
             {
-                // Write your code here ////////////////////////////////
-                pthread_t threads[78];
-                int thread_args[78];
-                struct ThreadArgs args[78];
+                printf(" PID: %d create child for Toys PID: %d\n",  getppid(),getpid());
+                pthread_t threads[79];
+                int thread_args[79];
+                struct ThreadArgs args[79];
                 int i;
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     strcpy(args[i].category, "Dataset/Store3/Toys/");
                     strcpy(args[i].itemName, item);
@@ -1376,7 +1317,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     args[i].n = n;
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     thread_args[i] = i + 1;
                     if (pthread_create(&threads[i], NULL, thread_function, &args[i]) != 0)
@@ -1386,7 +1327,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                     }
                 }
 
-                for (i = 0; i < 78; i++)
+                for (i = 0; i < 79; i++)
                 {
                     pthread_join(threads[i], NULL);
                 }
@@ -1394,7 +1335,7 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
                 return 0;
             }
 
-            printf("I am the third child. My PID: %d, Parent PID: %d\n", getpid(), getppid());
+           
 
             return 0;
         }
@@ -1466,23 +1407,18 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
         if (prices[0] > treshhold)
         {
             scores[0] = -1000;
-            printf("the treashold is: %d , price is: %d \n", treshhold, prices[0]);
-            printf("item was over threashold from stor 1 \n");
+            
         }
 
         if (prices[1] > treshhold)
         {
             scores[1] = -1000;
-            printf("the treashold is: %d , price is: %d \n", treshhold, prices[1]);
-
-            printf("item was over threashold from stor 2 \n");
+            
         }
         if (prices[2] > treshhold)
         {
             scores[2] = -1000;
-            printf("the treashold is: %d , price is: %d \n", treshhold, prices[2]);
-
-            printf("item was over threashold from stor 3 \n");
+            
         }
         scoreitems[0] = scoreitems[0] + scoreitem[0];
         scoreitems[1] = scoreitems[0] + scoreitem[1];
@@ -1518,33 +1454,18 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
     char message[100];
     if (scores[maxId] <= -1)
     {
-        printf("Not Found");
+       
         strcpy(message, "Not Found");
     }
     else
     {
-        printf("the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId], scoreitems[maxId], prices[maxId], store);
         sprintf(message, "the Best choise: score: %lf scoreitem :%lf  price:%lf  store:%d ", scores[maxId], scoreitems[maxId], prices[maxId], store);
     }
-    // data :  scores[maxId],scoreitems[maxId],prices[maxId],store
-    // recieving confirm
-
-    // end of recieving confirm
-
-    // printf("\n the data is beign read////////////////////////////////////////////////////////");
-    // // printf("\n %d \n", confirm);
-    // //  this part I should be handeling...
-    // //  I sould be calling the python file.
-    // double user_scores_2_goods[n + 1];
-    // user_scores_2_goods[0] = confirm;
 
     int *user_scores_2_goods;
     char formatted_output[256];
     format_goods_list(items, n, formatted_output, sizeof(formatted_output));
     user_scores_2_goods = confirm_function(message, user, n, items, user_name);
-    // user_scores_2_goods[0] = confirm;
-
-
     if (user_scores_2_goods == NULL)
     {
         fprintf(stderr, "Error: No scores received.\n");
@@ -1552,30 +1473,44 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
     }
 
     // Debugging Tool: Print the received array
-    printf("Received confirmation and scores:\n");
-    printf("Confirmation: %d\n", user_scores_2_goods[0]); // First element is confirmation
-    for (int i = 1; i <= n; i++)
-    {
-        printf("Score for good %d: %d\n", i, user_scores_2_goods[i]);
-    }
+ 
+   
 
-// I sould be calling the python file.
-// double user_scores_2_goods[n+1];
-// // user_scores_2_goods[0]=confirm;
-//  for (int i = 1; i <= n; i++)
-//     {
-//         user_scores_2_goods[i]=4;
-//     }
+     write(pipe1[user][1],&maxId,sizeof(int));
+     write(pipe2[user][1],scores,sizeof(double)*3);
+     write(pipe3[user][1],user_scores_2_goods,sizeof(int)*(n+1));
+     write(pipe4[user][1],&store,sizeof(int));
+     write(pipe5[user][1],&maxId,sizeof(int));
+     write(pipe6[user][1],scores,sizeof(double)*3);
+     write(pipe7[user][1],user_scores_2_goods,sizeof(int)*(n+1));
+     write(pipe8[user][1],mypathes257,sizeof(int)*n);
+     write(pipe9[user][1],&store,sizeof(int));
+     
+}
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// void main_function(user, treshhold, items, numitems, n /*tedad cala ha*/){
 
-    for (int i = 1; i <= n; i++)
-    {
-        user_scores_2_goods[i] = 4;
-    }
+// }
 
-        printf("\n");
-
-    if (scores[maxId] > -1 && user_scores_2_goods[0])
+// int main(){
+void *final_thread(void *args){
+ struct Threadorderargs *data = (struct Threadorderargs *)args;
+    int user=data->user; char **items =data->items; int *numitems=data->numitems; int n=data->n; int treshhold=data->treshhold;int is_repeated=data->treshhold; char *user_name=data->user_name;
+ int maxId;
+ double scores[3];
+ int user_scores_2_goods[n+1];
+ int store;
+ 
+ read(pipe1[user][0],&maxId,sizeof(int));
+     
+     read(pipe2[user][0],scores,sizeof(scores));
+         
+     read(pipe3[user][0],user_scores_2_goods,sizeof(user_scores_2_goods));
+        
+     read(pipe4[user][0],&store,sizeof(int));
+    
+  if (scores[maxId] > -1 && user_scores_2_goods[0])
     {
 
         char *st;
@@ -1588,184 +1523,214 @@ int main_function(int user, char **items, int *numitems, int n, int treshhold, i
             st = "2";
         }
         if (store == 3)
-        {
+        {    
             st = "3";
         }
-        write(pipes[user][1], st, 2);
-
-        for (int i = 1; i <= n; i++)
+       //  char *st = store == 1 ? "1" : (store == 2 ? "2" : "3");
+        if (write(pipes[user][1], st, 2) == -1)
         {
-
-            char itemnamescor[50];
-            sprintf(itemnamescor, "%.1f", user_scores_2_goods[i]);
-            // strcpy(itemnamescor, "%.1f", user_scores_2_goods[i]);
-            printf("Score for good %d: %s\n", i, itemnamescor);
-            write(pipescore[user][mypathes257[i - 1]][1], itemnamescor, 4);
-            // close(pipeitem[0][i][1]);
+            if (errno == EPIPE)
+            {
+                fprintf(stderr, "Error: Pipe closed unexpectedly (EPIPE) for user %d.\n", user);
+                exit(EXIT_FAILURE); // or handle gracefully
+            }
         }
-        // for (int i = 1; i <= n; i++)
-        // {                
-        //     char fileName[50];
-        //     sprintf(fileName,"Dataset/Store%d/Home/%d.txt",store,mypathes257[i-1]);
-        //     char line1[100];
-        //         char line2[100];
-        //         char line3[100];
-        //         char line4[100];
-        //         char line5[100];
-        //         char line6[100];
+
+    }
+
+}
+
+void *thread_scores(void *arg){
+struct Threadorderargs *data = (struct Threadorderargs *)arg;
+    int user=data->user; char **items =data->items; int *numitems=data->numitems; int n=data->n; int treshhold=data->treshhold;int is_repeated=data->treshhold; char *user_name=data->user_name;
+ int maxId;
+ double scores[3];
+ int user_scores_2_goods[n+1];
+ int mypathes257[n];
+ int store;
+      read(pipe5[user][0],&maxId,sizeof(int));
+      
+     read(pipe6[user][0],scores,sizeof(scores));
+   
+     read(pipe7[user][0],user_scores_2_goods,sizeof(user_scores_2_goods));
+    
+     read(pipe8[user][0],mypathes257,sizeof(mypathes257));
+      
+     read(pipe9[user][0],&store,sizeof(int));
+     
+    if (scores[maxId] > -1 && user_scores_2_goods[0])
+    {
+
+        
+        for (int i = 1; i <= n; i++)
+        {       
+                     
+            char fileName[50];
+            char category[50];
+            if(mypathes257[i-1]>=161&&mypathes257[i-1]<=239){strcpy(category,"Apparel");}//79
+            if(mypathes257[i-1]>=504&&mypathes257[i-1]<=575){strcpy(category,"Beauty");}
+            if(mypathes257[i-1]>=1&&mypathes257[i-1]<=78){strcpy(category,"Digital");}
+            if(mypathes257[i-1]>=240&&mypathes257[i-1]<=331){strcpy(category,"Food");}//92
+            if(mypathes257[i-1]>=79&&mypathes257[i-1]<=160){strcpy(category,"Home");}//82
+            if(mypathes257[i-1]>=332&&mypathes257[i-1]<=424){strcpy(category,"Market");}//93
+            if(mypathes257[i-1]>=576&&mypathes257[i-1]<=653){strcpy(category,"Sports");}
+            if(mypathes257[i-1]>=425&&mypathes257[i-1]<=503){strcpy(category,"Toys");}//79
+
+
+            sprintf(fileName,"Dataset/Store%d/%s/%d.txt",store,category,mypathes257[i-1]);
+            char line1[100];
+                char line2[100];
+                char line3[100];
+                char line4[100];
+                char line5[100];
+                char line6[100];
                 
             
-        //     sem_wait( &(mutex[user][mypathes257[i-1]])   ); 
-        //         read_count[store][mypathes257[i-1]]++;
-        //         if (read_count[store][mypathes257[i-1]] == 1) {
-        //             sem_wait(&rw_mutex[store][mypathes257[i-1]]); 
-        //         }
-        //         sem_post(&mutex[store][mypathes257[i-1]]);  
-        //         //reading
-        //         FILE  *file = fopen(fileName, "r"); 
-        //         fgets(line1, sizeof(line1), file);
-        //         fgets(line2, sizeof(line1), file);
-        //         fgets(line3, sizeof(line1), file);
-        //         fgets(line4, sizeof(line1), file);
-        //         fgets(line5, sizeof(line1), file);
-        //         fgets(line6, sizeof(line1), file);
-        //         fclose(file);
-        //         //end of reading
-        //         sem_wait(&mutex[store][mypathes257[i-1]]);   
-        //         read_count[store][mypathes257[i-1]]--;
-        //         if (read_count[store][mypathes257[i-1]] == 0) {
-        //             sem_post(&rw_mutex[store][mypathes257[i-1]]); 
-        //         }
-        //         sem_post(&mutex[store][mypathes257[i-1]]); 
-        //         char sc[10];char entity[10]; char price[10];
-        //     extract_substring_with_length(line3,sc,7,3);
-        //     extract_substring_with_length(line2,price,7,6);
+            sem_wait( &(mutex[user][mypathes257[i-1]])   ); 
+                read_count[store][mypathes257[i-1]]++;
+                if (read_count[store][mypathes257[i-1]] == 1) {
+                    sem_wait(&rw_mutex[store][mypathes257[i-1]]); 
+                }
+                sem_post(&mutex[store][mypathes257[i-1]]);  
+                //reading
+                printf("%s",fileName);
+                FILE  *file = fopen(fileName, "r"); 
+                fgets(line1, sizeof(line1), file);
+                fgets(line2, sizeof(line1), file);
+                fgets(line3, sizeof(line1), file);
+                fgets(line4, sizeof(line1), file);
+                fgets(line5, sizeof(line1), file);
+                fgets(line6, sizeof(line1), file);
+                fclose(file);
+                //end of reading
+                sem_wait(&mutex[store][mypathes257[i-1]]);   
+                read_count[store][mypathes257[i-1]]--;
+                if (read_count[store][mypathes257[i-1]] == 0) {
+                    sem_post(&rw_mutex[store][mypathes257[i-1]]); 
+                }
+                sem_post(&mutex[store][mypathes257[i-1]]); 
+                char sc[10];char entity[10]; char price[10];
+            extract_substring_with_length(line3,sc,7,3);
+            extract_substring_with_length(line2,price,7,6);
+         //     printf("\nentity:%s\n",entity);
+                extract_substring_with_length(line4,entity,8,2);
+        //    printf("\nprice:%s\n",price);
+            double pricenum= string_to_double(price);
             
-        //         extract_substring_with_length(line4,entity,8,2);
-            
-        //     double pricenum= string_to_double(price);
+             double oldscore = string_to_double(sc);
 
 
-        //     double oldscore = string_to_double(sc);
-
-
-        //     double entitymum =  string_to_double(entity);
-
-        //     double newscore = (oldscore   + user_scores_2_goods[i])/2;
-        //     updateFile(fileName,entitymum,items[i-1],pricenum,newscore);
-        // }
+             int entitymum =  atoi(entity);
+             int entitynum= (int)entitymum;
+          //   printf("\n%d\n",user_scores_2_goods[i]);
+            // printf("%.1f",oldscore);
+             int check=1;
+             if(oldscore==0||pricenum==0){check=0;}
+             if(entitymum==0){entitymum=10;}
+             if(pricenum==0){pricenum=105.12;}
+             double newscore = (oldscore   +(double) user_scores_2_goods[i])/2;
+             // printf("\n%.1f\n",newscore);
+              if(check==1){
+               sem_wait(&rw_mutex[store][mypathes257[i-1]]);
+            updateFile(fileName,entitymum,items[i-1],pricenum,newscore);
+              sem_post(&rw_mutex[store][mypathes257[i-1]]);
+              }
+         }
     }
 
+}
+int main_function(int user, char **items, int *numitems, int n, int treshhold, int is_repeated, char *user_name)
+{
 
-    // if (scores[maxId] > -1 && confirm == 1) /////////////////////////////////////////////////////////////////////////
-    // {
-    //     char *st = store == 1 ? "1" : (store == 2 ? "2" : "3");
-    //     if (write(pipes[user][1], st, 2) == -1)
-    //     {
-    //         if (errno == EPIPE)
-    //         {
-    //             fprintf(stderr, "Error: Pipe closed unexpectedly (EPIPE) for user %d.\n", user);
-    //             exit(EXIT_FAILURE); // or handle gracefully
-    //         }
-    //     }
+   
+    if (pipe(pipe1[user]) == -1)
+            {
+                perror("Pipe creation failed");
+            }
+     if (pipe(pipe2[user]) == -1)
+            {
+                perror("Pipe creation failed");
+             }
+        if (pipe(pipe3[user]) == -1)
+            {
+                perror("Pipe creation failed");
+            }
+            if (pipe(pipe4[user]) == -1)
+            {
+                perror("Pipe creation failed");
+           }
+            if (pipe(pipe5[user]) == -1)
+            {
+                perror("Pipe creation failed");
+           
+            }
+           if (pipe(pipe6[user]) == -1)
+            {
+                perror("Pipe creation failed");
+            }
+            if (pipe(pipe7[user]) == -1)
+            {
+                perror("Pipe creation failed");
+            }
+            if (pipe(pipe8[user]) == -1)
+            {
+                perror("Pipe creation failed");
+            }
+            if (pipe(pipe9[user]) == -1)
+            {
+                perror("Pipe creation failed");
+            }
+           
 
-    //     for (int i = 1; i <= n; i++)
-    //     {
-    //         char itemnamescor[50];
-    //         sprintf(itemnamescor, "4");
-    //         printf("Writing Score for good %d: %s\n", i, itemnamescor);
+    pthread_t threads[3];
 
-    //         if (write(pipescore[user][mypathes257[i - 1]][1], itemnamescor, strlen(itemnamescor) + 1) == -1) {
-    //             perror("Write error");
-    //         }
+    struct Threadorderargs arg1;
+    struct Threadorderargs arg2;
+    struct Threadorderargs arg3;
+    arg1.user=user;arg1.user_name=user_name;arg1.treshhold=treshhold;arg1.is_repeated=is_repeated;arg1.items=items;arg1.n=n;arg1.numitems=numitems;
+    arg2.user=user;arg2.user_name=user_name;arg2.treshhold=treshhold;arg2.is_repeated=is_repeated;arg2.items=items;arg2.n=n;arg2.numitems=numitems;
+    arg3.user=user;arg3.user_name=user_name;arg3.treshhold=treshhold;arg3.is_repeated=is_repeated;arg3.items=items;arg3.n=n;arg3.numitems=numitems;
 
-    //     }
-    // }
 
-    // printf("\n");
-    // for (int i = 1; i <= n; i++)
-    // {
-    //     char itemnamescor[50];
-    //     sprintf(itemnamescor, "4\0");
-    //     printf("Writing Score for good %d: %s\n", i, itemnamescor);
+pthread_create(&threads[0], NULL, odrder_thread, &arg1);
+pthread_create(&threads[1], NULL, thread_scores, &arg2);
+pthread_create(&threads[2], NULL, final_thread, &arg3);
+printf("main process : %lu create thread for order: %lu \n",threads[0]);
+printf("main process : %lu create thread for scores: %lu  \n",threads[1]);
+printf("main process : %lu create thread for final: %lu   \n",threads[2]);
 
-    //     int write_result = write(pipescore[user][mypathes257[i - 1]][1], itemnamescor, strlen(itemnamescor) + 1);
-    //     if (write_result == -1)
-    //     {
-    //         perror("Write failed");
-    //     }
-    //     else
-    //     {
-    //         printf("Write successful, bytes written: %d\n", write_result);
-    //     }
-    // }
+pthread_join(threads[0], NULL);
+pthread_join(threads[1], NULL);
+pthread_join(threads[2], NULL);
 
-    // for (int i = 0; i < 9; i++) {
-    //     if (close(pipefds[user][i][0]) != 0) {
-    //         perror("Failed to close read pipe user");
-    //     }
-    //     if (close(pipefds[user][i][1]) != 0) {
-    //         perror("Failed to close write pipe user");
-    //     }
-    // }
+    
     
     for (int i = 0; i < 9; i++) {
-        // Check and close read pipe
         if (pipefds[user][i][0] > 0) {
             if (close(pipefds[user][i][0]) == 0) {
-                pipefds[user][i][0] = -1;  // Mark as closed
+                pipefds[user][i][0] = -1;  
             } else {
-                // fprintf(stderr, "Failed to close read pipe user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][0]);
-                // perror("Close read pipe error");
             }
         } else {
-            // fprintf(stderr, "Read pipe already closed or invalid: user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][0]);
-        }
-
-        // Check and close write pipe
-        if (pipefds[user][i][1] > 0) {
+         }
+       if (pipefds[user][i][1] > 0) {
             if (close(pipefds[user][i][1]) == 0) {
-                pipefds[user][i][1] = -1;  // Mark as closed
+                pipefds[user][i][1] = -1;  
             } else {
-                // fprintf(stderr, "Failed to close write pipe user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][1]);
-                // perror("Close write pipe error");
             }
         } else {
-            // fprintf(stderr, "Write pipe already closed or invalid: user: %d, i: %d, fd: %d\n", user, i, pipefds[user][i][1]);
         }
     }
 
-    for (int i = 0; i < 9; i++)
-    {
-        for (int j = 0; j < 624; j++)
-        {
-            if (sem_destroy(&rw_mutex[i][j]) != 0)
-            {
-                perror("Failed to destroy rw_mutex");
-            }
-            if (sem_destroy(&mutex[i][j]) != 0)
-            {
-                perror("Failed to destroy mutex");
-            }
-        }
+    for(int i=0;i<9;i++){
+
+    close(pipefds[user][i][0]);
+    close(pipefds[user][i][1]);
     }
-
-    // for(int i=0;i<9;i++){
-
-    // close(pipefds[user][i][0]);
-    // close(pipefds[user][i][1]);
-    // }
-    //     for(int i=0; i<3;i++){
-    //         for(int j=0;j<624;j++){
-
-    //                 sem_destroy(&rw_mutex[i][j]);
-    //             sem_destroy(&mutex[i][j]);
-    //             }
-
-    //         }
+   
 
     printf("the whole app is now done.");
-    // return 0;
+     return 0;
 }
 
 #endif
